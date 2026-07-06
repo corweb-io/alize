@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { canCreateInvoice } from '@/lib/billing/entitlements'
 
 export const runtime = 'nodejs'
 
@@ -26,13 +25,6 @@ interface CreateInvoiceBody {
   items: InvoiceItemInput[]
 }
 
-function quotaError() {
-  return NextResponse.json(
-    { error: 'quota_exceeded', resource: 'invoices', plan: 'free' },
-    { status: 403 }
-  )
-}
-
 export async function POST(req: Request) {
   const supabase = await createClient()
   const {
@@ -40,10 +32,6 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  if (!(await canCreateInvoice())) {
-    return quotaError()
   }
 
   const body = (await req.json()) as CreateInvoiceBody
@@ -89,9 +77,6 @@ export async function POST(req: Request) {
     .single()
 
   if (insertError) {
-    if (insertError.message.includes('quota_exceeded_invoices')) {
-      return quotaError()
-    }
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 

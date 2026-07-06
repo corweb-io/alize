@@ -2,9 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 
 export type Plan = 'free' | 'pro'
 
-export const FREE_CLIENT_LIMIT = 1
-export const FREE_INVOICE_LIMIT_PER_MONTH = 3
-
 // Stripe statuses that still grant Pro access. past_due is a grace period.
 const ACTIVE_STATUSES = ['active', 'trialing', 'past_due']
 
@@ -87,13 +84,9 @@ export async function getUsage(): Promise<Usage> {
 }
 
 export async function canCreateClient(): Promise<boolean> {
-  const [{ plan }, usage] = await Promise.all([getCurrentPlan(), getUsage()])
-  if (plan === 'pro') return true
-  return usage.clients < FREE_CLIENT_LIMIT
+  return true
 }
 
 export async function canCreateInvoice(): Promise<boolean> {
-  const [{ plan }, usage] = await Promise.all([getCurrentPlan(), getUsage()])
-  if (plan === 'pro') return true
-  return usage.invoicesThisMonth < FREE_INVOICE_LIMIT_PER_MONTH
+  return true
 }

@@ -9,9 +9,9 @@ import { PRO_PRICING, type BillingInterval } from "@/lib/billing/pricing";
 type Interval = BillingInterval;
 
 const PRO_BENEFITS = [
-  "Clients illimités",
-  "Factures illimitées",
-  "Devis et cotisations",
+  "Support prioritaire",
+  "Accès anticipé aux nouvelles fonctionnalités",
+  "Soutien au développement",
   "Résiliable à tout moment",
 ];
 
@@ -48,7 +48,7 @@ export default function UpgradeCard() {
               Passer à Pro
             </h2>
             <p className="mt-1.5 text-sm leading-relaxed text-stone-500 dark:text-stone-400">
-              Débloquez l&apos;accès illimité et concentrez-vous sur votre activité.
+              Soutenez le projet et bénéficiez des avantages Pro.
             </p>
           </div>
 

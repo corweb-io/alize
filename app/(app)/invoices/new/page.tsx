@@ -1,14 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import InvoiceForm from "@/components/invoices/invoice-form";
-import QuotaReached from "@/components/billing/quota-reached";
 import PageHeader from "@/components/layout/page-header";
 import Panel from "@/components/ui/panel";
-import {
-  getCurrentPlan,
-  getUsage,
-  FREE_INVOICE_LIMIT_PER_MONTH,
-} from "@/lib/billing/entitlements";
 
 export default async function NewInvoicePage() {
   const supabase = await createClient();
@@ -20,10 +14,7 @@ export default async function NewInvoicePage() {
     redirect("/login");
   }
 
-  // Load entitlements, clients, and profile in parallel
-  const [plan, usage, clientsResult, profileResult] = await Promise.all([
-    getCurrentPlan(),
-    getUsage(),
+  const [clientsResult, profileResult] = await Promise.all([
     supabase
       .from("clients")
       .select("id, name, reference")
@@ -36,10 +27,6 @@ export default async function NewInvoicePage() {
       .single(),
   ]);
 
-  const overQuota =
-    plan.plan === "free" &&
-    usage.invoicesThisMonth >= FREE_INVOICE_LIMIT_PER_MONTH;
-
   const clients = clientsResult.data;
   const profile = profileResult.data;
 
@@ -50,20 +37,12 @@ export default async function NewInvoicePage() {
         description="Créez une nouvelle facture pour votre client"
       />
 
-      {overQuota ? (
-        <QuotaReached
-          resource="invoices"
-          used={usage.invoicesThisMonth}
-          limit={FREE_INVOICE_LIMIT_PER_MONTH}
+      <Panel accent>
+        <InvoiceForm
+          clients={clients || []}
+          defaultCurrency={profile?.default_currency}
         />
-      ) : (
-        <Panel accent>
-          <InvoiceForm
-            clients={clients || []}
-            defaultCurrency={profile?.default_currency}
-          />
-        </Panel>
-      )}
+      </Panel>
     </div>
   );
 }

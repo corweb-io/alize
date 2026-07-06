@@ -1,11 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import type { ReactNode } from "react";
 import {
   getCurrentPlan,
   getUsage,
-  FREE_CLIENT_LIMIT,
-  FREE_INVOICE_LIMIT_PER_MONTH,
 } from "@/lib/billing/entitlements";
 import CheckoutStatus from "@/components/billing/checkout-status";
 import UpgradeCard from "@/components/billing/upgrade-card";
@@ -31,10 +28,8 @@ const PLAN_STATUS_LABELS: Record<string, string> = {
 };
 
 const PRO_FEATURES = [
-  "Clients illimités",
-  "Factures illimitées",
-  "Devis et cotisations",
   "Support prioritaire",
+  "Accès anticipé aux nouvelles fonctionnalités",
 ];
 
 const clientsIcon = (
@@ -113,8 +108,8 @@ export default async function BillingPage({
                 </h2>
                 <p className="mt-1.5 max-w-lg text-sm leading-relaxed text-stone-500 dark:text-stone-400">
                   {isPro
-                    ? "Accès complet à toutes les fonctionnalités, sans limite de clients ni de factures."
-                    : `Jusqu'à ${FREE_CLIENT_LIMIT} client et ${FREE_INVOICE_LIMIT_PER_MONTH} factures par mois. Passez à Pro pour débloquer l'illimité.`}
+                    ? "Merci pour votre soutien — vous bénéficiez des avantages Pro."
+                    : "Accès complet à toutes les fonctionnalités, sans limite de clients ni de factures."}
                 </p>
               </div>
 
@@ -147,8 +142,8 @@ export default async function BillingPage({
               {(isPro
                 ? PRO_FEATURES
                 : [
-                    `${FREE_CLIENT_LIMIT} client max.`,
-                    `${FREE_INVOICE_LIMIT_PER_MONTH} factures / mois`,
+                    "Clients illimités",
+                    "Factures illimitées",
                     "Devis et cotisations",
                   ]
               ).map((feature) => (
@@ -181,39 +176,18 @@ export default async function BillingPage({
         </h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {isPro ? (
-            <>
-              <StatCard
-                label="Clients"
-                value={usage.clients}
-                icon={clientsIcon}
-                iconClassName="bg-teal-600 text-white"
-              />
-              <StatCard
-                label="Factures ce mois-ci"
-                value={usage.invoicesThisMonth}
-                icon={invoiceIcon}
-                iconClassName="bg-teal-700 text-white"
-              />
-            </>
-          ) : (
-            <>
-              <UsageMeter
-                label="Clients"
-                used={usage.clients}
-                limit={FREE_CLIENT_LIMIT}
-                icon={clientsIcon}
-                iconClassName="bg-teal-600 text-white"
-              />
-              <UsageMeter
-                label="Factures ce mois-ci"
-                used={usage.invoicesThisMonth}
-                limit={FREE_INVOICE_LIMIT_PER_MONTH}
-                icon={invoiceIcon}
-                iconClassName="bg-teal-700 text-white"
-              />
-            </>
-          )}
+          <StatCard
+            label="Clients"
+            value={usage.clients}
+            icon={clientsIcon}
+            iconClassName="bg-teal-600 text-white"
+          />
+          <StatCard
+            label="Factures ce mois-ci"
+            value={usage.invoicesThisMonth}
+            icon={invoiceIcon}
+            iconClassName="bg-teal-700 text-white"
+          />
         </div>
       </section>
 
@@ -238,69 +212,5 @@ function PlanBadge({ isPro }: { isPro: boolean }) {
       )}
       {isPro ? "Pro" : "Gratuit"}
     </span>
-  );
-}
-
-function UsageMeter({
-  label,
-  used,
-  limit,
-  icon,
-  iconClassName,
-}: {
-  label: string;
-  used: number;
-  limit: number;
-  icon: ReactNode;
-  iconClassName: string;
-}) {
-  const pct = Math.min(100, (used / limit) * 100);
-  const atLimit = used >= limit;
-  const nearLimit = !atLimit && pct >= 80;
-
-  const barColor = atLimit
-    ? "bg-red-500"
-    : nearLimit
-      ? "bg-amber-500"
-      : "bg-teal-600";
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-white/80 bg-white/90 p-5 shadow-lg shadow-teal-900/5 ring-1 ring-teal-900/5 dark:border-stone-700/80 dark:bg-stone-900/90 dark:ring-teal-500/10">
-      <div className="flex items-start gap-4">
-        <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl shadow-sm ${iconClassName}`}
-        >
-          {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-2">
-            <p className="text-sm font-medium text-stone-500 dark:text-stone-400">
-              {label}
-            </p>
-            <p className="text-xs text-stone-400 dark:text-stone-500">
-              {Math.round(pct)} %
-            </p>
-          </div>
-          <p className="text-2xl font-semibold tracking-tight text-[#1a454f] dark:text-teal-50">
-            {used}
-            <span className="text-base font-normal text-stone-400">
-              {" "}
-              / {limit}
-            </span>
-          </p>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800">
-            <div
-              className={`h-full rounded-full transition-all ${barColor}`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          {atLimit && (
-            <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">
-              Limite atteinte — passez à Pro pour continuer
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
   );
 }

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { canCreateClient } from '@/lib/billing/entitlements'
 
 export const runtime = 'nodejs'
 
@@ -10,13 +9,6 @@ interface CreateClientBody {
   address?: string | null
 }
 
-function quotaError() {
-  return NextResponse.json(
-    { error: 'quota_exceeded', resource: 'clients', plan: 'free' },
-    { status: 403 }
-  )
-}
-
 export async function POST(req: Request) {
   const supabase = await createClient()
   const {
@@ -24,10 +16,6 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  if (!(await canCreateClient())) {
-    return quotaError()
   }
 
   const body = (await req.json()) as CreateClientBody
@@ -61,9 +49,6 @@ export async function POST(req: Request) {
     .single()
 
   if (error) {
-    if (error.message.includes('quota_exceeded_clients')) {
-      return quotaError()
-    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
