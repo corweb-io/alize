@@ -57,13 +57,80 @@ export function getQuarterlyPeriod(date: Date): DeclarationPeriod {
   };
 }
 
-export function getCurrentDeclarationPeriod(
+export function getDeclarationPeriod(
   frequency: DeclarationFrequency,
-  date: Date = new Date()
+  date: Date
 ): DeclarationPeriod {
   return frequency === "monthly"
     ? getMonthlyPeriod(date)
     : getQuarterlyPeriod(date);
+}
+
+export function getCurrentDeclarationPeriod(
+  frequency: DeclarationFrequency,
+  date: Date = new Date()
+): DeclarationPeriod {
+  return getDeclarationPeriod(frequency, date);
+}
+
+export function parsePeriodKey(
+  key: string,
+  frequency: DeclarationFrequency
+): DeclarationPeriod | null {
+  if (frequency === "monthly") {
+    const match = /^(\d{4})-(\d{2})$/.exec(key);
+    if (!match) return null;
+    const month = Number(match[2]);
+    if (month < 1 || month > 12) return null;
+    return getMonthlyPeriod(new Date(Number(match[1]), month - 1, 1));
+  }
+
+  const match = /^(\d{4})-Q([1-4])$/.exec(key);
+  if (!match) return null;
+  return getQuarterlyPeriod(
+    new Date(Number(match[1]), (Number(match[2]) - 1) * 3, 1)
+  );
+}
+
+export function listDeclarationPeriods(
+  frequency: DeclarationFrequency,
+  fromDate: Date,
+  toDate: Date = new Date()
+): DeclarationPeriod[] {
+  const startPeriod = getDeclarationPeriod(frequency, fromDate);
+  const endPeriod = getDeclarationPeriod(frequency, toDate);
+
+  if (startPeriod.startDate > endPeriod.startDate) {
+    return [endPeriod];
+  }
+
+  const periods: DeclarationPeriod[] = [];
+  let cursor = new Date(startPeriod.startDate.getTime());
+  const max = frequency === "monthly" ? 120 : 40;
+
+  for (let i = 0; i < max; i++) {
+    const period = getDeclarationPeriod(frequency, cursor);
+    periods.push(period);
+    if (period.key === endPeriod.key) break;
+    cursor =
+      frequency === "monthly"
+        ? new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1)
+        : new Date(cursor.getFullYear(), cursor.getMonth() + 3, 1);
+  }
+
+  return periods;
+}
+
+export function resolveDeclarationPeriod(
+  frequency: DeclarationFrequency,
+  periodKey: string | undefined,
+  availablePeriods: DeclarationPeriod[],
+  fallback: DeclarationPeriod
+): DeclarationPeriod {
+  if (!periodKey) return fallback;
+  const parsed = parsePeriodKey(periodKey, frequency);
+  if (!parsed) return fallback;
+  return availablePeriods.find((period) => period.key === parsed.key) ?? fallback;
 }
 
 export function getYearToDateRange(date: Date = new Date()): {

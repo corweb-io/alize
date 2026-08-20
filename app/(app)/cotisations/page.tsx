@@ -9,8 +9,11 @@ import ObligationTracker from "@/components/cotisations/obligation-tracker";
 import PlafondCard from "@/components/cotisations/plafond-card";
 import DeclarationTracker from "@/components/cotisations/declaration-tracker";
 import CotisationsTabs from "@/components/cotisations/cotisations-tabs";
+import PeriodSelect from "@/components/cotisations/period-select";
+import PeriodHistory from "@/components/cotisations/period-history";
+import PeriodInvoices from "@/components/cotisations/period-invoices";
 import PageHeader from "@/components/layout/page-header";
-import { formatCurrency, formatDate } from "@/lib/utils/format";
+import { formatCurrency } from "@/lib/utils/format";
 import {
   ACTIVITY_TYPE_LABELS,
   getActivityPeriod,
@@ -23,7 +26,7 @@ import { getPlafondSummary } from "@/lib/finance/plafonds";
 import { buildDeclarationSummary } from "@/lib/finance/declarations";
 import { computePeriodCharges } from "@/lib/finance/charges";
 import { FISCAL_BASE_CURRENCY } from "@/lib/finance/currency";
-import type { FiscalSettings } from "@/lib/types/database";
+import type { CotisationReserve, FiscalSettings } from "@/lib/types/database";
 import TotalChargesCard from "@/components/cotisations/total-charges-card";
 
 function TabBadge({ children, variant }: { children: React.ReactNode; variant: "warning" | "danger" }) {
@@ -39,7 +42,12 @@ function TabBadge({ children, variant }: { children: React.ReactNode; variant: "
   );
 }
 
-export default async function CotisationsPage() {
+export default async function CotisationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; period?: string }>;
+}) {
+  const { period: periodKey } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -78,19 +86,26 @@ export default async function CotisationsPage() {
     );
   }
 
-  const summary = await getCotisationSummary(user.id, fiscalSettings);
-  const obligationSummary = await getObligationSummary(user.id, fiscalSettings);
+  const [summary, obligationSummary, { data: reservesData }] = await Promise.all([
+    getCotisationSummary(user.id, fiscalSettings, { periodKey }),
+    getObligationSummary(user.id, fiscalSettings),
+    supabase.from("cotisation_reserves").select("*").eq("user_id", user.id),
+  ]);
+  const reserves = (reservesData ?? []) as CotisationReserve[];
   const plafond = getPlafondSummary(
     fiscalSettings.activity_type,
     summary.ytdTurnover
   );
 
-  const { data: reserve } = await supabase
-    .from("cotisation_reserves")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("period_key", summary.periodSummary.periodKey)
-    .maybeSingle();
+  const currentReserve =
+    reserves.find(
+      (reserve) => reserve.period_key === summary.periodSummary.periodKey
+    ) ?? null;
+  const selectedReserve =
+    reserves.find(
+      (reserve) =>
+        reserve.period_key === summary.selectedPeriodSummary.periodKey
+    ) ?? null;
 
   const activityPeriod = getActivityPeriod(
     new Date(fiscalSettings.activity_start_date)
@@ -100,10 +115,15 @@ export default async function CotisationsPage() {
       ? "Mensuelle"
       : "Trimestrielle";
 
-  const declaration = buildDeclarationSummary(
+  const currentDeclaration = buildDeclarationSummary(
     fiscalSettings,
     summary.periodSummary,
-    reserve?.declared_at
+    currentReserve?.declared_at
+  );
+  const selectedDeclaration = buildDeclarationSummary(
+    fiscalSettings,
+    summary.selectedPeriodSummary,
+    selectedReserve?.declared_at
   );
   const charges = computePeriodCharges(
     fiscalSettings,
@@ -111,7 +131,9 @@ export default async function CotisationsPage() {
     summary.periodSummary.label
   );
 
-  const declarationStatus = reserve?.declared_at ? "declared" : declaration.status;
+  const declarationStatus = currentReserve?.declared_at
+    ? "declared"
+    : currentDeclaration.status;
   const cpsBadge =
     declarationStatus === "overdue" ? (
       <TabBadge variant="danger">!</TabBadge>
@@ -129,11 +151,21 @@ export default async function CotisationsPage() {
       </TabBadge>
     ) : undefined;
 
-  const deadlineLabel = declaration.deadline.toLocaleDateString("fr-FR", {
+  const deadlineLabel = currentDeclaration.deadline.toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
+  const currentPaid = currentReserve?.amount_paid ?? 0;
+  const currentRemaining = Math.max(
+    0,
+    summary.periodSummary.cotisationsDue - currentPaid
+  );
+  const periodOptions = summary.periodHistory.map((period) => ({
+    key: period.periodKey,
+    label: period.label,
+    isCurrent: period.periodKey === summary.periodSummary.periodKey,
+  }));
 
   return (
     <div className="space-y-6">
@@ -197,10 +229,18 @@ export default async function CotisationsPage() {
                       </p>
                       <p>
                         Échéance DCA : {deadlineLabel}
-                        {!declaration.declaredAt &&
-                          declaration.daysUntilDeadline >= 0 && (
-                            <span> · J-{declaration.daysUntilDeadline}</span>
+                        {!currentDeclaration.declaredAt &&
+                          currentDeclaration.daysUntilDeadline >= 0 && (
+                            <span> · J-{currentDeclaration.daysUntilDeadline}</span>
                           )}
+                      </p>
+                      <p>
+                        Versé {formatCurrency(currentPaid, fiscalCurrency)}
+                        {currentRemaining > 0
+                          ? ` · reste ${formatCurrency(currentRemaining, fiscalCurrency)}`
+                          : summary.periodSummary.cotisationsDue > 0
+                            ? " · soldé"
+                            : ""}
                       </p>
                     </div>
                   </div>
@@ -262,107 +302,51 @@ export default async function CotisationsPage() {
                   </p>
                 </Card>
               </div>
+
+              <PeriodHistory
+                periods={summary.periodHistory}
+                reserves={reserves}
+                selectedKey={summary.selectedPeriodSummary.periodKey}
+                currentKey={summary.periodSummary.periodKey}
+                frequency={fiscalSettings.declaration_frequency}
+                currency={fiscalCurrency}
+              />
             </>
           }
           cps={
             <>
+              <PeriodSelect
+                periods={periodOptions}
+                selectedKey={summary.selectedPeriodSummary.periodKey}
+                frequency={fiscalSettings.declaration_frequency}
+              />
+
               <Card title="Déclaration CPS">
                 <DeclarationTracker
-                  declaration={declaration}
-                  initialReserve={reserve}
+                  key={summary.selectedPeriodSummary.periodKey}
+                  declaration={selectedDeclaration}
+                  initialReserve={selectedReserve}
                   currency={fiscalCurrency}
                 />
               </Card>
 
               <Card title="Suivi des provisions CPS">
                 <ReserveTracker
-                  periodKey={summary.periodSummary.periodKey}
-                  periodLabel={summary.periodSummary.label}
-                  cotisationsDue={summary.periodSummary.cotisationsDue}
-                  initialReserve={reserve}
+                  key={summary.selectedPeriodSummary.periodKey}
+                  periodKey={summary.selectedPeriodSummary.periodKey}
+                  periodLabel={summary.selectedPeriodSummary.label}
+                  cotisationsDue={summary.selectedPeriodSummary.cotisationsDue}
+                  initialReserve={selectedReserve}
                   currency={fiscalCurrency}
                 />
               </Card>
 
-              {summary.periodInvoices.length > 0 ? (
-                <Card title="Factures payées sur la période">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      <thead>
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                            Facture
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                            Date
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                            CA HT
-                          </th>
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                            Provision
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {summary.periodInvoices.map((inv) => (
-                          <tr key={inv.id}>
-                            <td className="px-4 py-3 text-sm">
-                              <Link
-                                href={`/invoices/${inv.id}`}
-                                className="text-teal-700 hover:underline font-medium dark:text-teal-300"
-                              >
-                                {inv.reference}
-                              </Link>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                              {formatDate(inv.invoice_date)}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">
-                              {formatCurrency(inv.total_ht, inv.currency || fiscalCurrency)}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-right font-medium text-amber-700 dark:text-amber-300">
-                              {formatCurrency(inv.reserveAmount, fiscalCurrency)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="bg-gray-50 dark:bg-zinc-800">
-                          <td
-                            colSpan={2}
-                            className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white"
-                          >
-                            Total
-                          </td>
-                          <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
-                            {formatCurrency(summary.periodSummary.turnover, fiscalCurrency)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-right font-semibold text-amber-700 dark:text-amber-300">
-                            {formatCurrency(
-                              summary.periodSummary.cotisationsDue,
-                              fiscalCurrency
-                            )}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                  <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                    Montants basés sur la date de facture des factures payées. Les
-                    factures en devise étrangère sont converties en {fiscalCurrency} au
-                    taux du jour de facturation. Aucune cotisation n&apos;est due si
-                    votre CA est nul sur la période.
-                  </p>
-                </Card>
-              ) : (
-                <Card>
-                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                    Aucune facture payée sur {summary.periodSummary.label}. Marquez vos
-                    factures comme payées pour suivre les cotisations de cette période.
-                  </p>
-                </Card>
-              )}
+              <PeriodInvoices
+                period={summary.selectedPeriodSummary}
+                invoices={summary.periodInvoices}
+                currency={fiscalCurrency}
+                isHistorical={summary.isHistorical}
+              />
             </>
           }
           obligations={

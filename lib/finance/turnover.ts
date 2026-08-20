@@ -6,8 +6,9 @@ import {
 import { computeCotisations, getApplicableRate } from "./cotisations-st-barth";
 import {
   getCurrentDeclarationPeriod,
-  getYearToDateRange,
   isDateInPeriod,
+  listDeclarationPeriods,
+  resolveDeclarationPeriod,
 } from "./periods";
 import type { FiscalSettings, PeriodSummary } from "./types";
 
@@ -19,6 +20,8 @@ export interface PaidInvoiceWithTotal {
   total_ht_base: number;
   currency?: string;
 }
+
+export type PeriodInvoice = PaidInvoiceWithTotal & { reserveAmount: number };
 
 async function fetchPaidInvoicesWithTotals(
   userId: string
@@ -73,54 +76,108 @@ function sumTurnoverInRange(
   };
 }
 
+function buildPeriodSummary(
+  invoices: PaidInvoiceWithTotal[],
+  settings: FiscalSettings,
+  period: { key: string; label: string; startDate: Date; endDate: Date }
+): PeriodSummary {
+  const periodData = sumTurnoverInRange(
+    invoices,
+    period.startDate,
+    period.endDate
+  );
+  const rate = getApplicableRate(settings, period.startDate);
+
+  return {
+    periodKey: period.key,
+    label: period.label,
+    startDate: period.startDate,
+    endDate: period.endDate,
+    turnover: periodData.turnover,
+    cotisationsDue: computeCotisations(
+      periodData.turnover,
+      settings,
+      period.startDate
+    ),
+    rate,
+    invoiceCount: periodData.invoiceCount,
+  };
+}
+
+function invoicesForPeriod(
+  invoices: PaidInvoiceWithTotal[],
+  settings: FiscalSettings,
+  period: { key: string; label: string; startDate: Date; endDate: Date }
+): PeriodInvoice[] {
+  return invoices
+    .filter((inv) => isDateInPeriod(inv.invoice_date, period))
+    .map((inv) => ({
+      ...inv,
+      reserveAmount: computeCotisations(
+        inv.total_ht_base,
+        settings,
+        period.startDate
+      ),
+    }));
+}
+
 export async function getCotisationSummary(
   userId: string,
-  settings: FiscalSettings
+  settings: FiscalSettings,
+  options?: { periodKey?: string }
 ) {
   const invoices = await fetchPaidInvoicesWithTotals(userId);
   const frequency = settings.declaration_frequency || "quarterly";
   const currentPeriod = getCurrentDeclarationPeriod(frequency);
-  const ytdRange = getYearToDateRange();
+  const activityStart = settings.activity_start_date
+    ? new Date(settings.activity_start_date)
+    : currentPeriod.startDate;
 
-  const periodData = sumTurnoverInRange(
-    invoices,
-    currentPeriod.startDate,
+  const availablePeriods = listDeclarationPeriods(
+    frequency,
+    activityStart,
     currentPeriod.endDate
   );
-  const ytdData = sumTurnoverInRange(
-    invoices,
-    ytdRange.startDate,
-    ytdRange.endDate
+  const selectedPeriod = resolveDeclarationPeriod(
+    frequency,
+    options?.periodKey,
+    availablePeriods,
+    currentPeriod
   );
 
-  const rate = getApplicableRate(settings);
-  const periodCotisations = computeCotisations(periodData.turnover, settings);
-  const ytdCotisations = computeCotisations(ytdData.turnover, settings);
+  const periodHistory = [...availablePeriods]
+    .reverse()
+    .map((period) => buildPeriodSummary(invoices, settings, period));
 
-  const periodSummary: PeriodSummary = {
-    periodKey: currentPeriod.key,
-    label: currentPeriod.label,
-    startDate: currentPeriod.startDate,
-    endDate: currentPeriod.endDate,
-    turnover: periodData.turnover,
-    cotisationsDue: periodCotisations,
-    rate,
-    invoiceCount: periodData.invoiceCount,
-  };
+  const periodSummary =
+    periodHistory.find((period) => period.periodKey === currentPeriod.key) ??
+    buildPeriodSummary(invoices, settings, currentPeriod);
+  const selectedPeriodSummary =
+    periodHistory.find((period) => period.periodKey === selectedPeriod.key) ??
+    periodSummary;
 
-  const periodInvoices = invoices
-    .filter((inv) => isDateInPeriod(inv.invoice_date, currentPeriod))
-    .map((inv) => ({
-      ...inv,
-      reserveAmount: computeCotisations(inv.total_ht_base, settings),
-    }));
+  const currentYear = new Date().getFullYear();
+  const ytdPeriods = periodHistory.filter(
+    (period) => period.startDate.getFullYear() === currentYear
+  );
+  const ytdTurnover = ytdPeriods.reduce(
+    (sum, period) => sum + period.turnover,
+    0
+  );
+  const ytdCotisations = ytdPeriods.reduce(
+    (sum, period) => sum + period.cotisationsDue,
+    0
+  );
 
   return {
     periodSummary,
-    ytdTurnover: ytdData.turnover,
+    selectedPeriodSummary,
+    isHistorical: selectedPeriodSummary.periodKey !== periodSummary.periodKey,
+    periodHistory,
+    ytdTurnover,
     ytdCotisations,
-    rate,
-    periodInvoices,
+    rate: periodSummary.rate,
+    periodInvoices: invoicesForPeriod(invoices, settings, selectedPeriod),
     allPaidInvoices: invoices,
   };
 }

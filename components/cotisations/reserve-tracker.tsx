@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ export default function ReserveTracker({
   initialReserve,
   currency = "EUR",
 }: ReserveTrackerProps) {
+  const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [setAside, setSetAside] = useState(
@@ -33,6 +35,7 @@ export default function ReserveTracker({
   const setAsideNum = parseFloat(setAside) || 0;
   const paidNum = parseFloat(paid) || 0;
   const gap = cotisationsDue - setAsideNum;
+  const remainingToPay = Math.max(0, cotisationsDue - paidNum);
   const remaining = setAsideNum - paidNum;
 
   const handleSave = async () => {
@@ -68,6 +71,7 @@ export default function ReserveTracker({
       toast.error("Enregistrement impossible", { description: error.message });
     } else {
       toast.success("Provisions enregistrées");
+      router.refresh();
     }
 
     setLoading(false);
@@ -121,13 +125,36 @@ export default function ReserveTracker({
             {formatAmount(Math.max(0, gap))}
           </p>
         </div>
-        <div className="rounded-lg bg-gray-50 dark:bg-zinc-800 p-4">
-          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-            Disponible pour la CPS
+        <div
+          className={`rounded-lg p-4 ${
+            remainingToPay > 0
+              ? "bg-gray-50 dark:bg-zinc-800"
+              : "bg-green-50 dark:bg-green-900/20"
+          }`}
+        >
+          <p
+            className={`text-xs font-medium uppercase tracking-wide ${
+              remainingToPay > 0
+                ? "text-gray-600 dark:text-gray-400"
+                : "text-green-700 dark:text-green-300"
+            }`}
+          >
+            Reste à payer
           </p>
-          <p className="mt-1 text-xl font-semibold text-gray-900 dark:text-white">
-            {formatAmount(Math.max(0, remaining))}
+          <p
+            className={`mt-1 text-xl font-semibold ${
+              remainingToPay > 0
+                ? "text-gray-900 dark:text-white"
+                : "text-green-900 dark:text-green-100"
+            }`}
+          >
+            {formatAmount(remainingToPay)}
           </p>
+          {setAsideNum > 0 && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Provision disponible : {formatAmount(Math.max(0, remaining))}
+            </p>
+          )}
         </div>
       </div>
 
