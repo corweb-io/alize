@@ -113,6 +113,7 @@ export interface Invoice {
   client_reference?: string;
   invoice_date: string;
   due_date: string;
+  paid_at?: string | null;
   payment_method: string;
   currency?: string;
   status: "draft" | "sent" | "paid" | "overdue" | "accepted" | "declined";

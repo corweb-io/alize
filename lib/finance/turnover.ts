@@ -3,7 +3,7 @@ import {
   convertAmountsToBaseCurrency,
   FISCAL_BASE_CURRENCY,
 } from "./currency";
-import { computeCotisations, getApplicableRate } from "./cotisations-st-barth";
+import { computeCpsDeclaration } from "./cotisations-st-barth";
 import {
   getCurrentDeclarationPeriod,
   isDateInPeriod,
@@ -16,9 +16,17 @@ export interface PaidInvoiceWithTotal {
   id: string;
   reference: string;
   invoice_date: string;
+  paid_at: string | null;
   total_ht: number;
   total_ht_base: number;
   currency?: string;
+}
+
+export function getEncaissementDate(invoice: {
+  paid_at?: string | null;
+  invoice_date: string;
+}): string {
+  return invoice.paid_at || invoice.invoice_date;
 }
 
 export type PeriodInvoice = PaidInvoiceWithTotal & { reserveAmount: number };
@@ -30,7 +38,7 @@ async function fetchPaidInvoicesWithTotals(
 
   const { data: invoices } = await supabase
     .from("invoices")
-    .select("id, reference, invoice_date, currency")
+    .select("id, reference, invoice_date, paid_at, currency")
     .eq("user_id", userId)
     .eq("document_type", "invoice")
     .eq("status", "paid");
@@ -53,6 +61,7 @@ async function fetchPaidInvoicesWithTotals(
     id: inv.id,
     reference: inv.reference,
     invoice_date: inv.invoice_date,
+    paid_at: inv.paid_at ?? null,
     total_ht: totals[inv.id] || 0,
     currency: inv.currency,
   }));
@@ -66,7 +75,7 @@ function sumTurnoverInRange(
   endDate: Date
 ): { turnover: number; invoiceCount: number } {
   const filtered = invoices.filter((inv) => {
-    const date = new Date(inv.invoice_date);
+    const date = new Date(getEncaissementDate(inv));
     return date >= startDate && date <= endDate;
   });
 
@@ -86,7 +95,11 @@ function buildPeriodSummary(
     period.startDate,
     period.endDate
   );
-  const rate = getApplicableRate(settings, period.startDate);
+  const cpsBreakdown = computeCpsDeclaration(
+    periodData.turnover,
+    settings,
+    period.startDate
+  );
 
   return {
     periodKey: period.key,
@@ -94,13 +107,10 @@ function buildPeriodSummary(
     startDate: period.startDate,
     endDate: period.endDate,
     turnover: periodData.turnover,
-    cotisationsDue: computeCotisations(
-      periodData.turnover,
-      settings,
-      period.startDate
-    ),
-    rate,
+    cotisationsDue: cpsBreakdown.total,
+    rate: cpsBreakdown.socialRate,
     invoiceCount: periodData.invoiceCount,
+    cpsBreakdown,
   };
 }
 
@@ -110,14 +120,14 @@ function invoicesForPeriod(
   period: { key: string; label: string; startDate: Date; endDate: Date }
 ): PeriodInvoice[] {
   return invoices
-    .filter((inv) => isDateInPeriod(inv.invoice_date, period))
+    .filter((inv) => isDateInPeriod(getEncaissementDate(inv), period))
     .map((inv) => ({
       ...inv,
-      reserveAmount: computeCotisations(
+      reserveAmount: computeCpsDeclaration(
         inv.total_ht_base,
         settings,
         period.startDate
-      ),
+      ).total,
     }));
 }
 

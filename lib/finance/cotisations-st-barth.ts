@@ -2,6 +2,7 @@ import type {
   ActivityPeriod,
   ActivityType,
   CotisationRate,
+  CpsDeclarationBreakdown,
   DeclarationFrequency,
   FiscalSettings,
 } from "./types";
@@ -100,13 +101,81 @@ export function getApplicableRate(
     : rateEntry.cotisations;
 }
 
+function roundCents(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/** CPS DCA receipts round each contribution line to the nearest euro. */
+function roundEuros(value: number): number {
+  return Math.round(value);
+}
+
+/**
+ * Contribution formation professionnelle, as billed on CPS DCA receipts.
+ * Commerçant receipts use 0.1%; artisans use the higher 0.3% rate.
+ */
+export function getCfpRate(settings: FiscalSettings): number {
+  if (settings.activity_type === "prestations_bnc") return 0.2;
+  if (settings.activity_type === "prestations_bic" && settings.is_artisan) {
+    return 0.3;
+  }
+  return 0.1;
+}
+
+/**
+ * Taxe pour frais de chambre consulaire, as billed on CPS DCA receipts.
+ * St Barth applies the rate on the declared period CA (no 5 000 € floor).
+ */
+export function getChambreConsulaireRate(settings: FiscalSettings): {
+  rate: number;
+  label: string;
+} {
+  if (settings.activity_type === "prestations_bnc") {
+    return { rate: 0, label: "Taxe chambre consulaire" };
+  }
+  if (settings.activity_type === "vente_bic") {
+    return { rate: 0.015, label: "Taxe pour frais de chambre CCI" };
+  }
+  if (settings.activity_type === "location_meublee") {
+    return { rate: 0.015, label: "Taxe pour frais de chambre CCI" };
+  }
+  if (settings.is_artisan) {
+    return { rate: 0.48, label: "Taxe pour frais de chambre CMA" };
+  }
+  return { rate: 0.044, label: "Taxe pour frais de chambre CCI" };
+}
+
 export function computeCotisations(
   turnover: number,
   settings: FiscalSettings,
   referenceDate: Date = new Date()
 ): number {
   const rate = getApplicableRate(settings, referenceDate);
-  return Math.round(turnover * (rate / 100) * 100) / 100;
+  return roundCents(turnover * (rate / 100));
+}
+
+export function computeCpsDeclaration(
+  turnover: number,
+  settings: FiscalSettings,
+  referenceDate: Date = new Date()
+): CpsDeclarationBreakdown {
+  const socialRate = getApplicableRate(settings, referenceDate);
+  const cfpRate = getCfpRate(settings);
+  const chambre = getChambreConsulaireRate(settings);
+  const social = roundEuros(turnover * (socialRate / 100));
+  const cfp = roundEuros(turnover * (cfpRate / 100));
+  const chambreAmount = roundEuros(turnover * (chambre.rate / 100));
+
+  return {
+    social,
+    socialRate,
+    cfp,
+    cfpRate,
+    chambre: chambreAmount,
+    chambreRate: chambre.rate,
+    chambreLabel: chambre.label,
+    total: social + cfp + chambreAmount,
+  };
 }
 
 export function isFiscalSettingsComplete(

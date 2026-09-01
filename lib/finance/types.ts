@@ -12,6 +12,17 @@ export interface CotisationRate {
   cotisationsWithVersementLiberatoire: number;
 }
 
+export interface CpsDeclarationBreakdown {
+  social: number;
+  socialRate: number;
+  cfp: number;
+  cfpRate: number;
+  chambre: number;
+  chambreRate: number;
+  chambreLabel: string;
+  total: number;
+}
+
 export interface PeriodSummary {
   periodKey: string;
   label: string;
@@ -21,4 +32,5 @@ export interface PeriodSummary {
   cotisationsDue: number;
   rate: number;
   invoiceCount: number;
+  cpsBreakdown: CpsDeclarationBreakdown;
 }

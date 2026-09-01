@@ -21,12 +21,11 @@ export function calculateInvoiceStatus(
   isPaid: boolean
 ): string {
   if (isPaid) return 'paid'
-  if (currentStatus === 'paid') return 'paid'
-  
-  if (isOverdue(dueDate, currentStatus)) {
+
+  if (isOverdue(dueDate, currentStatus === 'paid' ? 'sent' : currentStatus)) {
     return 'overdue'
   }
-  
+
   if (currentStatus === 'draft') return 'draft'
   return 'sent'
 }

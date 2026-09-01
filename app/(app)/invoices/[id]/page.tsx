@@ -132,7 +132,21 @@ export default async function InvoiceDetailPage({
                   </span>
                 </div>
               </div>
-              <StatusToggle invoiceId={id} currentStatus={displayStatus} />
+              {displayStatus === "paid" && invoice.paid_at && (
+                <div className="flex justify-between">
+                  <span className="text-stone-500 dark:text-stone-400">
+                    Encaissée le :
+                  </span>
+                  <span className="font-medium text-[#1a454f] dark:text-teal-50">
+                    {formatDate(invoice.paid_at)}
+                  </span>
+                </div>
+              )}
+              <StatusToggle
+                invoiceId={id}
+                currentStatus={displayStatus}
+                paidAt={invoice.paid_at}
+              />
               <div className="flex justify-between">
                 <span className="text-stone-500 dark:text-stone-400">
                   Total HT:

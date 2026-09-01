@@ -91,7 +91,9 @@ export default async function DashboardPage() {
     chargesData = computePeriodCharges(
       fiscalSettings,
       cotisationData.periodSummary.turnover,
-      cotisationData.periodSummary.label
+      cotisationData.periodSummary.label,
+      cotisationData.periodSummary.startDate.getFullYear(),
+      cotisationData.periodSummary.startDate
     );
 
     const { data: reserve } = await supabase

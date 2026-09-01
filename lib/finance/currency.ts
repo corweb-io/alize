@@ -78,8 +78,20 @@ export async function convertAmount(
   return Math.round(amount * rate * 100) / 100;
 }
 
+function fiscalDate(item: {
+  invoice_date: string;
+  paid_at?: string | null;
+}): string {
+  return toIsoDate(item.paid_at || item.invoice_date);
+}
+
 export async function convertAmountsToBaseCurrency<
-  T extends { total_ht: number; currency?: string; invoice_date: string },
+  T extends {
+    total_ht: number;
+    currency?: string;
+    invoice_date: string;
+    paid_at?: string | null;
+  },
 >(items: T[], baseCurrency: string = FISCAL_BASE_CURRENCY): Promise<
   (T & { total_ht_base: number })[]
 > {
@@ -89,7 +101,7 @@ export async function convertAmountsToBaseCurrency<
   for (const item of items) {
     const from = item.currency || baseCurrency;
     if (from === baseCurrency) continue;
-    uniquePairs.add(`${toIsoDate(item.invoice_date)}:${from}`);
+    uniquePairs.add(`${fiscalDate(item)}:${from}`);
   }
 
   const rateMap = new Map<string, number>();
@@ -106,7 +118,7 @@ export async function convertAmountsToBaseCurrency<
       return { ...item, total_ht_base: item.total_ht };
     }
 
-    const date = toIsoDate(item.invoice_date);
+    const date = fiscalDate(item);
     const rate = rateMap.get(`${date}:${from}`);
     if (rate === undefined) {
       return { ...item, total_ht_base: item.total_ht };

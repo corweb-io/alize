@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Card from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
-import type { PeriodInvoice } from "@/lib/finance/turnover";
+import { getEncaissementDate, type PeriodInvoice } from "@/lib/finance/turnover";
 import type { PeriodSummary } from "@/lib/finance/types";
 
 interface PeriodInvoicesProps {
@@ -21,8 +21,9 @@ export default function PeriodInvoices({
     return (
       <Card>
         <p className="py-4 text-center text-gray-500 dark:text-gray-400">
-          Aucune facture payée sur {period.label}. Marquez vos factures comme
-          payées pour suivre les cotisations de cette période.
+          Aucune facture encaissée sur {period.label}. Marquez vos factures
+          comme payées (avec la date d&apos;encaissement) pour suivre les
+          cotisations de cette période.
         </p>
       </Card>
     );
@@ -38,7 +39,10 @@ export default function PeriodInvoices({
                 Facture
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                Date
+                Facturée
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                Encaissée
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
                 CA HT
@@ -62,6 +66,9 @@ export default function PeriodInvoices({
                 <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                   {formatDate(inv.invoice_date)}
                 </td>
+                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                  {formatDate(getEncaissementDate(inv))}
+                </td>
                 <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">
                   {formatCurrency(inv.total_ht, inv.currency || currency)}
                 </td>
@@ -74,7 +81,7 @@ export default function PeriodInvoices({
           <tfoot>
             <tr className="bg-gray-50 dark:bg-zinc-800">
               <td
-                colSpan={2}
+                colSpan={3}
                 className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white"
               >
                 Total{isHistorical ? ` · ${period.label}` : ""}
@@ -90,10 +97,10 @@ export default function PeriodInvoices({
         </table>
       </div>
       <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-        Montants basés sur la date de facture des factures payées, au taux de{" "}
-        {period.rate}% applicable sur {period.label}. Les factures en devise
-        étrangère sont converties en {currency} au taux du jour de facturation.
-        Aucune cotisation n&apos;est due si votre CA est nul sur la période.
+        CA rattaché à {period.label} selon la date d&apos;encaissement, pas la
+        date de facture. Provisions CPS (cotisations {period.rate}% + formation
+        + taxe chambre). Les devises étrangères sont converties au taux du jour
+        d&apos;encaissement.
       </p>
     </Card>
   );

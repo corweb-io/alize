@@ -104,17 +104,17 @@ BEGIN
   -- Invoices (mixed statuses, spread across 2026 for cotisation tracking)
   INSERT INTO invoices (
     id, user_id, reference, client_id, client_reference,
-    invoice_date, due_date, payment_method, currency, status,
+    invoice_date, due_date, paid_at, payment_method, currency, status,
     vat_applicable, vat_article, notes
   ) VALUES
-    (i1, uid, 'F-000001', c1, 'C-000001', '2026-01-20', '2026-02-19', 'Virement', 'EUR', 'paid', false, NULL, 'Maintenance site web — T1'),
-    (i2, uid, 'F-000002', c2, 'C-000002', '2026-02-10', '2026-03-12', 'Virement', 'EUR', 'paid', false, NULL, 'Intégration API réservations'),
-    (i3, uid, 'F-000003', c1, 'C-000001', '2026-04-05', '2026-05-05', 'Virement', 'EUR', 'paid', false, NULL, 'Refonte UX — avril'),
-    (i4, uid, 'F-000004', c3, 'C-000003', '2026-05-15', '2026-06-14', 'Virement', 'EUR', 'paid', false, NULL, 'Dashboard analytics hôtelier'),
-    (i5, uid, 'F-000005', c4, 'C-000004', '2026-06-10', '2026-07-10', 'Virement', 'EUR', 'paid', false, NULL, 'Audit sécurité application'),
-    (i6, uid, 'F-000006', c1, 'C-000001', '2026-06-18', '2026-07-18', 'Virement', 'EUR', 'sent', false, NULL, 'Support mensuel — juin'),
-    (i7, uid, 'F-000007', c2, 'C-000002', '2026-03-01', '2026-03-31', 'Virement', 'EUR', 'overdue', false, NULL, 'Correctifs booking engine'),
-    (i8, uid, 'F-000008', c3, 'C-000003', '2026-06-22', '2026-07-22', 'Virement', 'EUR', 'draft', false, NULL, 'Projet app mobile — brouillon');
+    (i1, uid, 'F-000001', c1, 'C-000001', '2026-01-20', '2026-02-19', '2026-01-28', 'Virement', 'EUR', 'paid', false, NULL, 'Maintenance site web — T1'),
+    (i2, uid, 'F-000002', c2, 'C-000002', '2026-02-10', '2026-03-12', '2026-02-20', 'Virement', 'EUR', 'paid', false, NULL, 'Intégration API réservations'),
+    (i3, uid, 'F-000003', c1, 'C-000001', '2026-04-05', '2026-05-05', '2026-04-18', 'Virement', 'EUR', 'paid', false, NULL, 'Refonte UX — avril'),
+    (i4, uid, 'F-000004', c3, 'C-000003', '2026-05-15', '2026-06-14', '2026-05-30', 'Virement', 'EUR', 'paid', false, NULL, 'Dashboard analytics hôtelier'),
+    (i5, uid, 'F-000005', c4, 'C-000004', '2026-06-10', '2026-07-10', '2026-06-25', 'Virement', 'EUR', 'paid', false, NULL, 'Audit sécurité application'),
+    (i6, uid, 'F-000006', c1, 'C-000001', '2026-06-18', '2026-07-18', NULL, 'Virement', 'EUR', 'sent', false, NULL, 'Support mensuel — juin'),
+    (i7, uid, 'F-000007', c2, 'C-000002', '2026-03-01', '2026-03-31', NULL, 'Virement', 'EUR', 'overdue', false, NULL, 'Correctifs booking engine'),
+    (i8, uid, 'F-000008', c3, 'C-000003', '2026-06-22', '2026-07-22', NULL, 'Virement', 'EUR', 'draft', false, NULL, 'Projet app mobile — brouillon');
 
   -- Invoice line items (HT totals drive cotisation calculations)
   INSERT INTO invoice_items (invoice_id, description, additional_info, unit_price_ht, quantity, total_ht, order_index) VALUES

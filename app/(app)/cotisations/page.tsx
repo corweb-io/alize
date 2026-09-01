@@ -12,6 +12,7 @@ import CotisationsTabs from "@/components/cotisations/cotisations-tabs";
 import PeriodSelect from "@/components/cotisations/period-select";
 import PeriodHistory from "@/components/cotisations/period-history";
 import PeriodInvoices from "@/components/cotisations/period-invoices";
+import CpsBreakdown from "@/components/cotisations/cps-breakdown";
 import PageHeader from "@/components/layout/page-header";
 import { formatCurrency } from "@/lib/utils/format";
 import {
@@ -128,7 +129,9 @@ export default async function CotisationsPage({
   const charges = computePeriodCharges(
     fiscalSettings,
     summary.periodSummary.turnover,
-    summary.periodSummary.label
+    summary.periodSummary.label,
+    summary.periodSummary.startDate.getFullYear(),
+    summary.periodSummary.startDate
   );
 
   const declarationStatus = currentReserve?.declared_at
@@ -337,6 +340,15 @@ export default async function CotisationsPage({
                   periodLabel={summary.selectedPeriodSummary.label}
                   cotisationsDue={summary.selectedPeriodSummary.cotisationsDue}
                   initialReserve={selectedReserve}
+                  currency={fiscalCurrency}
+                />
+              </Card>
+
+              <Card title={`Montant à payer · ${summary.selectedPeriodSummary.label}`}>
+                <CpsBreakdown
+                  turnover={summary.selectedPeriodSummary.turnover}
+                  breakdown={summary.selectedPeriodSummary.cpsBreakdown}
+                  periodLabel={summary.selectedPeriodSummary.label}
                   currency={fiscalCurrency}
                 />
               </Card>

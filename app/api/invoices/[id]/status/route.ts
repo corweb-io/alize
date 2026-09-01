@@ -18,16 +18,16 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { status } = body
+    const { status, paid_at: paidAtInput } = body
 
-    if (!status || !['draft', 'sent', 'paid', 'overdue'].includes(status)) {
+    if (!status || !['draft', 'sent', 'paid', 'overdue', 'unpaid'].includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
     }
 
     // Get current invoice to check due date
     const { data: invoice } = await supabase
       .from('invoices')
-      .select('due_date, status')
+      .select('due_date, status, paid_at')
       .eq('id', id)
       .eq('user_id', user.id)
       .single()
@@ -42,9 +42,25 @@ export async function PATCH(
         ? calculateInvoiceStatus(invoice.due_date, invoice.status, status === 'paid')
         : status
 
+    const paidAt =
+      typeof paidAtInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(paidAtInput)
+        ? paidAtInput
+        : null
+
+    if (newStatus === 'paid' && !paidAt) {
+      return NextResponse.json(
+        { error: "Indiquez la date d'encaissement" },
+        { status: 400 }
+      )
+    }
+
     const { error: updateError } = await supabase
       .from('invoices')
-      .update({ status: newStatus })
+      .update({
+        status: newStatus,
+        paid_at: newStatus === 'paid' ? paidAt : null,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', id)
       .eq('user_id', user.id)
 

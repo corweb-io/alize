@@ -1,4 +1,4 @@
-import { computeCotisations } from "./cotisations-st-barth";
+import { computeCpsDeclaration } from "./cotisations-st-barth";
 import {
   computeCfaeAmount,
   computeDefaultTedAmount,
@@ -28,18 +28,28 @@ export function computePeriodCharges(
   settings: FiscalSettings,
   periodTurnover: number,
   periodLabel: string,
-  year: number = new Date().getFullYear()
+  year: number = new Date().getFullYear(),
+  referenceDate: Date = new Date(year, 0, 1)
 ): ChargesSummary {
   const frequency = settings.declaration_frequency || "quarterly";
   const periodsPerYear = frequency === "monthly" ? 12 : 4;
 
-  const cpsSocial = computeCotisations(periodTurnover, {
-    ...settings,
-    versement_liberatoire: false,
-  });
-  const cpsTotal = computeCotisations(periodTurnover, settings);
+  const cpsSocial = computeCpsDeclaration(
+    periodTurnover,
+    {
+      ...settings,
+      versement_liberatoire: false,
+    },
+    referenceDate
+  ).social;
+  const cpsDeclaration = computeCpsDeclaration(
+    periodTurnover,
+    settings,
+    referenceDate
+  );
+  const cpsTotal = cpsDeclaration.total;
   const incomeTaxVL = settings.versement_liberatoire
-    ? Math.round((cpsTotal - cpsSocial) * 100) / 100
+    ? Math.round((cpsDeclaration.social - cpsSocial) * 100) / 100
     : 0;
 
   const cfaeProrata = shouldIncludeObligation("cfae", settings, year)
@@ -68,6 +78,22 @@ export function computePeriodCharges(
   const lines: ChargeLine[] = [
     { key: "cps", label: "Cotisations CPS", amount: cpsSocial },
   ];
+
+  if (cpsDeclaration.cfp > 0) {
+    lines.push({
+      key: "cfp",
+      label: `Formation professionnelle (${cpsDeclaration.cfpRate}%)`,
+      amount: cpsDeclaration.cfp,
+    });
+  }
+
+  if (cpsDeclaration.chambre > 0) {
+    lines.push({
+      key: "chambre",
+      label: `${cpsDeclaration.chambreLabel} (${cpsDeclaration.chambreRate}%)`,
+      amount: cpsDeclaration.chambre,
+    });
+  }
 
   if (incomeTaxVL > 0) {
     lines.push({
