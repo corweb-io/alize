@@ -25,19 +25,25 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Clear existing demo data for this user
+  -- Clear existing demo data for this user's seeded business
   DELETE FROM invoice_items
-    WHERE invoice_id IN (SELECT id FROM invoices WHERE user_id = uid);
-  DELETE FROM invoices WHERE user_id = uid;
-  DELETE FROM clients WHERE user_id = uid;
-  DELETE FROM cotisation_reserves WHERE user_id = uid;
-  DELETE FROM invoice_templates WHERE user_id = uid;
+    WHERE invoice_id IN (SELECT id FROM invoices WHERE business_id = uid);
+  DELETE FROM invoices WHERE business_id = uid;
+  DELETE FROM clients WHERE business_id = uid;
+  DELETE FROM cotisation_reserves WHERE business_id = uid;
+  DELETE FROM invoice_templates WHERE business_id = uid;
   DELETE FROM subscriptions WHERE user_id = uid;
 
-  -- Profile
-  INSERT INTO profiles (
+  -- Profile (user-level)
+  INSERT INTO profiles (id, email)
+  VALUES (uid, 'lefrancmathis@gmail.com')
+  ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, updated_at = NOW();
+
+  -- Business: reuses the user id, like businesses migrated from profiles, so
+  -- the inserts below (user_id = uid) land in it via the business_id default.
+  INSERT INTO businesses (
     id, email, company_name, address, phone,
-    default_currency, banking_info, legal_info, fiscal_settings
+    default_currency, banking_info, legal_info, fiscal_settings, created_by
   ) VALUES (
     uid,
     'lefrancmathis@gmail.com',
@@ -62,11 +68,13 @@ BEGIN
       'late_payment_notice', 'En cas de retard de paiement, une indemnité forfaitaire pour frais de recouvrement de 40 euros sera exigée (Décret n°2012-1115 du 2 octobre 2012).'
     ),
     jsonb_build_object(
+      'legal_form', 'ei_micro',
       'activity_start_date', '2024-01-15',
       'activity_type', 'prestations_bnc',
       'declaration_frequency', 'quarterly',
       'versement_liberatoire', false
-    )
+    ),
+    uid
   )
   ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
@@ -78,6 +86,10 @@ BEGIN
     legal_info = EXCLUDED.legal_info,
     fiscal_settings = EXCLUDED.fiscal_settings,
     updated_at = NOW();
+
+  INSERT INTO business_members (business_id, user_id, role)
+  VALUES (uid, uid, 'owner')
+  ON CONFLICT DO NOTHING;
 
   -- Pro subscription (bypasses free-tier quotas)
   INSERT INTO subscriptions (

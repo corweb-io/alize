@@ -53,7 +53,7 @@ function AuthCallbackContent() {
               console.error('Error creating profile:', profileError)
             }
 
-            window.location.href = '/dashboard'
+            window.location.href = '/b'
             return true
           }
 
@@ -89,7 +89,7 @@ function AuthCallbackContent() {
               }
             }
 
-            window.location.href = '/dashboard'
+            window.location.href = '/b'
             return
           }
           // If exchange fails (no code verifier), fall through to session check
@@ -125,7 +125,7 @@ function AuthCallbackContent() {
             }
           }
 
-          window.location.href = '/dashboard'
+          window.location.href = '/b'
           return
         }
       }

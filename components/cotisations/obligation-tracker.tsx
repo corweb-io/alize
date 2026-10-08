@@ -1,5 +1,7 @@
 "use client";
 
+import { useBusinessId } from "@/lib/use-business-id";
+
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -43,6 +45,7 @@ function ObligationRow({
   obligation: ObligationItem;
   currency: string;
 }) {
+  const businessId = useBusinessId();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [amountDue, setAmountDue] = useState(String(obligation.amountDue));
@@ -81,7 +84,7 @@ function ObligationRow({
     }
 
     const payload = {
-      user_id: user.id,
+      business_id: businessId,
       year: obligation.year,
       obligation_type: obligation.type,
       amount_due: amountDueNum,

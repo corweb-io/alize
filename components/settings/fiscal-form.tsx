@@ -17,25 +17,25 @@ import type {
   FiscalSettings,
   LegalForm,
 } from "@/lib/types/database";
-import type { Profile } from "@/components/settings/profile-types";
-import { useProfileUpdate } from "@/components/settings/use-profile-update";
+import type { Business } from "@/lib/types/database";
+import { useBusinessUpdate } from "@/components/settings/use-business-update";
 
 interface FiscalFormProps {
-  profile: Profile;
+  business: Business;
 }
 
-export default function FiscalForm({ profile }: FiscalFormProps) {
-  const { save, loading, error } = useProfileUpdate();
+export default function FiscalForm({ business }: FiscalFormProps) {
+  const { save, loading, error } = useBusinessUpdate();
   const [fiscalSettings, setFiscalSettings] = useState<FiscalSettings>({
-    legal_form: getLegalForm(profile.fiscal_settings),
-    is_majority_manager: profile.fiscal_settings?.is_majority_manager ?? true,
-    activity_start_date: profile.fiscal_settings?.activity_start_date || "",
-    activity_type: profile.fiscal_settings?.activity_type,
+    legal_form: getLegalForm(business.fiscal_settings),
+    is_majority_manager: business.fiscal_settings?.is_majority_manager ?? true,
+    activity_start_date: business.fiscal_settings?.activity_start_date || "",
+    activity_type: business.fiscal_settings?.activity_type,
     declaration_frequency:
-      profile.fiscal_settings?.declaration_frequency || "quarterly",
-    versement_liberatoire: profile.fiscal_settings?.versement_liberatoire || false,
-    employee_count: profile.fiscal_settings?.employee_count ?? 0,
-    is_artisan: profile.fiscal_settings?.is_artisan ?? false,
+      business.fiscal_settings?.declaration_frequency || "quarterly",
+    versement_liberatoire: business.fiscal_settings?.versement_liberatoire || false,
+    employee_count: business.fiscal_settings?.employee_count ?? 0,
+    is_artisan: business.fiscal_settings?.is_artisan ?? false,
   });
 
   const legalForm = getLegalFormDefinition(fiscalSettings);

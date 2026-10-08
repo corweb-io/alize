@@ -13,6 +13,7 @@ interface InvoiceItemInput {
 }
 
 interface CreateInvoiceBody {
+  business_id: string
   client_id: string
   client_reference?: string | null
   invoice_date: string
@@ -36,6 +37,9 @@ export async function POST(req: Request) {
 
   const body = (await req.json()) as CreateInvoiceBody
 
+  if (!body.business_id) {
+    return NextResponse.json({ error: 'business_id is required' }, { status: 400 })
+  }
   if (!body.client_id) {
     return NextResponse.json({ error: 'client_id is required' }, { status: 400 })
   }
@@ -46,21 +50,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Each item needs a description and total' }, { status: 400 })
   }
 
-  const { data: refData, error: refError } = await supabase.rpc('generate_invoice_reference', {
-    p_user_id: user.id,
-  })
-  if (refError || !refData) {
-    return NextResponse.json(
-      { error: refError?.message ?? 'Failed to generate reference' },
-      { status: 500 }
-    )
-  }
-
   const { data: invoice, error: insertError } = await supabase
     .from('invoices')
     .insert({
-      user_id: user.id,
-      reference: refData,
+      // RLS checks membership; the reference is assigned by a DB trigger.
+      business_id: body.business_id,
       client_id: body.client_id,
       client_reference: body.client_reference?.trim() || null,
       invoice_date: body.invoice_date,

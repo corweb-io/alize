@@ -1,5 +1,21 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { ACTIVE_BUSINESS_COOKIE, isUuid } from "@/lib/business-path";
+
+// Pre-multi-tenant URLs, now scoped under /b/[businessId].
+const LEGACY_BUSINESS_PATHS = [
+  "/dashboard",
+  "/invoices",
+  "/quotes",
+  "/clients",
+  "/cotisations",
+  "/settings",
+  "/templates",
+];
+
+function matchesPath(pathname: string, path: string) {
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -35,20 +51,18 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const { pathname } = request.nextUrl;
+
   // Protected routes under (app) route group
   const protectedPaths = [
-    "/dashboard",
-    "/invoices",
-    "/quotes",
-    "/clients",
-    "/cotisations",
-    "/settings",
-    "/templates",
+    ...LEGACY_BUSINESS_PATHS,
+    "/b",
+    "/account",
     "/onboarding",
   ];
 
   const isProtectedPath = protectedPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
+    matchesPath(pathname, path)
   );
 
   // Stripe webhooks authenticate via signature, not user session.
@@ -76,8 +90,48 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (user) {
+    if (matchesPath(pathname, "/settings/billing")) {
+      const url = request.nextUrl.clone();
+      url.pathname = pathname.replace("/settings/billing", "/account/billing");
+      return redirectWithCookies(url, supabaseResponse);
+    }
+
+    if (LEGACY_BUSINESS_PATHS.some((path) => matchesPath(pathname, path))) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/b";
+      url.search = "";
+      url.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+      return redirectWithCookies(url, supabaseResponse);
+    }
+
+    // Remember the business being viewed so business-less URLs resolve to it.
+    const businessId = pathname.match(/^\/b\/([^/]+)/)?.[1];
+    if (
+      isUuid(businessId) &&
+      request.cookies.get(ACTIVE_BUSINESS_COOKIE)?.value !== businessId
+    ) {
+      supabaseResponse.cookies.set(ACTIVE_BUSINESS_COOKIE, businessId, {
+        path: "/",
+        sameSite: "lax",
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 365,
+      });
+    }
+  }
+
   // IMPORTANT: You *must* return the supabaseResponse object as it is.
   return supabaseResponse;
+}
+
+// Redirects must carry over any refreshed auth cookies.
+function redirectWithCookies(url: URL, supabaseResponse: NextResponse) {
+  const response = NextResponse.redirect(url);
+  supabaseResponse.cookies
+    .getAll()
+    .forEach((cookie) => response.cookies.set(cookie));
+  return response;
 }
 
 export const config = {

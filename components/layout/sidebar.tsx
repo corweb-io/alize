@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { businessPath } from "@/lib/business-path";
+import { LEGAL_FORMS } from "@/lib/finance/legal-forms";
+import type { LegalForm } from "@/lib/types/database";
 
 const navigation = [
   { name: "Tableau de bord", href: "/dashboard", icon: "📊" },
@@ -26,9 +29,51 @@ function isNavItemActive(pathname: string, href: string) {
   );
 }
 
-export default function Sidebar() {
+export interface SidebarBusiness {
+  id: string;
+  name: string;
+  legalForm?: LegalForm;
+}
+
+interface SidebarProps {
+  businesses: SidebarBusiness[];
+  /** Business used for links on pages outside /b/[businessId]. */
+  fallbackBusinessId: string;
+}
+
+const NEW_BUSINESS_VALUE = "__new__";
+
+export default function Sidebar({
+  businesses,
+  fallbackBusinessId,
+}: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const params = useParams<{ businessId?: string }>();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const businessId = params.businessId ?? fallbackBusinessId;
+  const activeBusiness =
+    businesses.find((b) => b.id === businessId) ?? businesses[0];
+  const basePath = businessPath(businessId, "");
+  // Nav matching works on the path relative to the business.
+  const sectionPath = pathname.startsWith(`${basePath}/`)
+    ? pathname.slice(basePath.length)
+    : pathname;
+
+  const switchBusiness = (value: string) => {
+    if (value === NEW_BUSINESS_VALUE) {
+      router.push("/onboarding");
+      return;
+    }
+    // Ids of the current page (invoice, client…) don't exist in the other
+    // business, so land on the same section's root.
+    const section =
+      navigation.find((item) => isNavItemActive(sectionPath, item.href))
+        ?.href ?? "/dashboard";
+    setMobileMenuOpen(false);
+    router.push(businessPath(value, section));
+  };
 
   return (
     <>
@@ -78,19 +123,46 @@ export default function Sidebar() {
                 Alizé
               </p>
               <p className="text-[10px] text-teal-800/70 dark:text-teal-400/80">
-                Micro-entreprise · Saint-Barth
+                Facturation · Saint-Barth
               </p>
             </div>
           </div>
         </div>
 
-        <nav className="mt-16 space-y-1 p-3 lg:mt-0 lg:p-4">
+        <div className="mt-16 border-b border-teal-900/8 px-3 pb-3 dark:border-teal-500/10 lg:mt-0 lg:px-4 lg:pt-4">
+          <label
+            htmlFor="business-switcher"
+            className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-500 dark:text-stone-400"
+          >
+            Entreprise
+          </label>
+          <select
+            id="business-switcher"
+            value={activeBusiness.id}
+            onChange={(e) => switchBusiness(e.target.value)}
+            className="w-full truncate rounded-lg border border-teal-900/10 bg-white px-3 py-2 text-sm font-medium text-[#1a454f] shadow-sm focus:border-teal-600 focus:ring-teal-600 dark:border-teal-500/20 dark:bg-stone-900 dark:text-teal-50"
+          >
+            {businesses.map((business) => (
+              <option key={business.id} value={business.id}>
+                {business.name}
+              </option>
+            ))}
+            <option value={NEW_BUSINESS_VALUE}>+ Nouvelle entreprise</option>
+          </select>
+          {activeBusiness.legalForm && (
+            <p className="mt-1 text-[11px] text-teal-800/70 dark:text-teal-400/80">
+              {LEGAL_FORMS[activeBusiness.legalForm].label}
+            </p>
+          )}
+        </div>
+
+        <nav className="space-y-1 p-3 lg:p-4">
           {navigation.map((item) => {
-            const isActive = isNavItemActive(pathname, item.href);
+            const isActive = isNavItemActive(sectionPath, item.href);
             return (
               <Link
                 key={item.name}
-                href={item.href}
+                href={businessPath(businessId, item.href)}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   isActive

@@ -64,7 +64,7 @@ function buildObligationItem(
 }
 
 export async function getObligationSummary(
-  userId: string,
+  businessId: string,
   settings: FiscalSettings,
   year: number = new Date().getFullYear()
 ) {
@@ -74,7 +74,7 @@ export async function getObligationSummary(
   const { data: records } = await supabase
     .from("annual_obligations")
     .select("*")
-    .eq("user_id", userId)
+    .eq("business_id", businessId)
     .eq("year", year);
 
   const recordByType = new Map(

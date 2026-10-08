@@ -1,5 +1,5 @@
 import { formatCurrencyForPdf } from "@/lib/utils/format";
-import type { FiscalSettings, LegalForm, Profile } from "@/lib/types/database";
+import type { Business, FiscalSettings, LegalForm } from "@/lib/types/database";
 
 /**
  * How social contributions are computed for a structure.
@@ -150,7 +150,7 @@ export function isOnboardingComplete(
   return true;
 }
 
-type SenderProfile = Pick<Profile, "company_name" | "legal_info"> & {
+type SenderProfile = Pick<Business, "company_name" | "legal_info"> & {
   fiscal_settings?: FiscalSettings | null;
 };
 

@@ -171,7 +171,7 @@ export default function LoginPage() {
       }
 
       toast.success("Bienvenue !");
-      window.location.replace("/dashboard");
+      window.location.replace("/b");
     } catch (err) {
       console.error("Unexpected error during OTP verification:", err);
       const errorMessage =

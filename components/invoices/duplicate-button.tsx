@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { businessPath } from "@/lib/business-path";
+import { useBusinessId } from "@/lib/use-business-id";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Button from "@/components/ui/button";
@@ -10,6 +12,7 @@ interface DuplicateButtonProps {
 }
 
 export default function DuplicateButton({ invoiceId }: DuplicateButtonProps) {
+  const businessId = useBusinessId();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +30,7 @@ export default function DuplicateButton({ invoiceId }: DuplicateButtonProps) {
             description: "Passez à Pro pour créer plus de factures ce mois-ci.",
             action: {
               label: "Passer à Pro",
-              onClick: () => router.push("/settings/billing"),
+              onClick: () => router.push("/account/billing"),
             },
           });
           return;
@@ -41,7 +44,7 @@ export default function DuplicateButton({ invoiceId }: DuplicateButtonProps) {
 
       const data = await response.json();
       toast.success("Facture dupliquée");
-      router.push(`/invoices/${data.id}`);
+      router.push(businessPath(businessId, `/invoices/${data.id}`));
       router.refresh();
     } catch (error: unknown) {
       const errorMessage =

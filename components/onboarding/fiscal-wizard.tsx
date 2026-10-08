@@ -10,6 +10,7 @@ import Select from "@/components/ui/select";
 import {
   ACTIVITY_TYPE_LABELS,
 } from "@/lib/finance/cotisations-st-barth";
+import { businessPath } from "@/lib/business-path";
 import {
   LEGAL_FORMS,
   LEGAL_FORM_OPTIONS,
@@ -45,20 +46,27 @@ const STEPS = [
 ] as const;
 
 interface FiscalWizardProps {
-  userId: string;
-  email?: string;
+  /** Existing business to complete; a new business is created otherwise. */
+  businessId?: string;
+  initialCompanyName?: string;
   initialSettings?: FiscalSettings;
+  /** Contact email prefilled on a newly created business. */
+  email?: string;
+  isAdditionalBusiness?: boolean;
 }
 
 export default function FiscalWizard({
-  userId,
-  email,
+  businessId,
+  initialCompanyName = "",
   initialSettings,
+  email,
+  isAdditionalBusiness = false,
 }: FiscalWizardProps) {
   const router = useRouter();
   const supabase = createClient();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [companyName, setCompanyName] = useState(initialCompanyName);
   const [settings, setSettings] = useState<FiscalSettings>({
     legal_form: initialSettings?.legal_form,
     is_majority_manager: initialSettings?.is_majority_manager ?? true,
@@ -77,7 +85,7 @@ export default function FiscalWizard({
 
   const canContinue = () => {
     if (step === 1) {
-      return Boolean(legalForm);
+      return Boolean(legalForm && companyName.trim());
     }
     if (step === 2) {
       return Boolean(
@@ -94,33 +102,51 @@ export default function FiscalWizard({
   const handleFinish = async () => {
     setLoading(true);
 
-    const { error } = await supabase.from("profiles").upsert({
-      id: userId,
-      email,
-      fiscal_settings: {
-        ...settings,
-        activity_type: legalForm?.hasActivityType
-          ? settings.activity_type
+    const fiscalSettings: FiscalSettings = {
+      ...settings,
+      activity_type: legalForm?.hasActivityType
+        ? settings.activity_type
+        : undefined,
+      is_majority_manager:
+        settings.legal_form === "sarl"
+          ? settings.is_majority_manager
           : undefined,
-        is_majority_manager:
-          settings.legal_form === "sarl"
-            ? settings.is_majority_manager
-            : undefined,
-        versement_liberatoire: legalForm?.isMicro
-          ? settings.versement_liberatoire
-          : false,
-      },
-      updated_at: new Date().toISOString(),
-    });
+      versement_liberatoire: legalForm?.isMicro
+        ? settings.versement_liberatoire
+        : false,
+    };
 
-    if (error) {
-      toast.error("Enregistrement impossible", { description: error.message });
+    let targetBusinessId = businessId;
+    let error: { message: string } | null = null;
+
+    if (businessId) {
+      ({ error } = await supabase
+        .from("businesses")
+        .update({
+          company_name: companyName.trim(),
+          fiscal_settings: fiscalSettings,
+        })
+        .eq("id", businessId));
+    } else {
+      const result = await supabase.rpc("create_business", {
+        p_company_name: companyName,
+        p_fiscal_settings: fiscalSettings,
+        p_email: email ?? null,
+      });
+      error = result.error;
+      targetBusinessId = result.data ?? undefined;
+    }
+
+    if (error || !targetBusinessId) {
+      toast.error("Enregistrement impossible", {
+        description: error?.message,
+      });
       setLoading(false);
       return;
     }
 
     toast.success("Configuration enregistrée");
-    router.push("/dashboard");
+    router.push(businessPath(targetBusinessId));
     router.refresh();
   };
 
@@ -143,7 +169,9 @@ export default function FiscalWizard({
           Étape {step + 1} sur {STEPS.length}
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-[#1a454f] dark:text-teal-50">
-          {STEPS[step].title}
+          {step === 0 && isAdditionalBusiness
+            ? "Nouvelle entreprise"
+            : STEPS[step].title}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-stone-600 dark:text-stone-400">
           {STEPS[step].description}
@@ -176,6 +204,12 @@ export default function FiscalWizard({
 
         {step === 1 && (
           <div className="space-y-4">
+            <Input
+              label="Nom de l'entreprise"
+              placeholder="ex. Studio Lefranc"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+            />
             <Select
               label="Forme juridique"
               value={settings.legal_form ?? ""}
@@ -335,10 +369,14 @@ export default function FiscalWizard({
           <Button
             type="button"
             variant="secondary"
-            onClick={() => setStep((s) => s - 1)}
-            disabled={step === 0 || loading}
+            onClick={() =>
+              step === 0 && isAdditionalBusiness
+                ? router.back()
+                : setStep((s) => s - 1)
+            }
+            disabled={(step === 0 && !isAdditionalBusiness) || loading}
           >
-            Retour
+            {step === 0 && isAdditionalBusiness ? "Annuler" : "Retour"}
           </Button>
           {step < STEPS.length - 1 ? (
             <Button

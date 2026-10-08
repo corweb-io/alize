@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { businessPath } from "@/lib/business-path";
 import { formatCurrency } from "@/lib/utils/format";
 import type { ChargesSummary } from "@/lib/finance/charges";
 
 interface TotalChargesCardProps {
+  businessId: string;
   charges: ChargesSummary;
   periodTurnover: number;
   currency?: string;
@@ -10,6 +12,7 @@ interface TotalChargesCardProps {
 }
 
 export default function TotalChargesCard({
+  businessId,
   charges,
   periodTurnover,
   currency = "EUR",
@@ -18,7 +21,7 @@ export default function TotalChargesCard({
   if (compact) {
     return (
       <Link
-        href="/cotisations"
+        href={businessPath(businessId, "/cotisations")}
         className="block overflow-hidden rounded-xl border border-teal-200/80 bg-gradient-to-br from-teal-50/80 to-white p-5 shadow-lg shadow-teal-900/5 ring-1 ring-teal-900/5 transition-all hover:shadow-xl hover:ring-teal-700/20 dark:border-teal-500/20 dark:from-teal-950/30 dark:to-stone-900/90 dark:ring-teal-500/10"
       >
         <div className="flex flex-wrap items-start justify-between gap-4">

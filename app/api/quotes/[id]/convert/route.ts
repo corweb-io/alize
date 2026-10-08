@@ -20,7 +20,6 @@ export async function POST(
       .from("invoices")
       .select("*")
       .eq("id", id)
-      .eq("user_id", user.id)
       .eq("document_type", "quote")
       .single();
 
@@ -45,23 +44,11 @@ export async function POST(
       return NextResponse.json({ error: "Failed to load items" }, { status: 500 });
     }
 
-    const { data: newReference, error: refError } = await supabase.rpc(
-      "generate_invoice_reference",
-      { p_user_id: user.id }
-    );
-
-    if (refError || !newReference) {
-      return NextResponse.json(
-        { error: "Failed to generate reference" },
-        { status: 500 }
-      );
-    }
-
     const { data: invoice, error: createError } = await supabase
       .from("invoices")
       .insert({
-        user_id: user.id,
-        reference: newReference,
+        // The reference is assigned by a DB trigger.
+        business_id: quote.business_id,
         document_type: "invoice",
         version: "1.0",
         client_id: quote.client_id,

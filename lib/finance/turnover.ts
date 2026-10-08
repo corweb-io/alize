@@ -32,14 +32,14 @@ export function getEncaissementDate(invoice: {
 export type PeriodInvoice = PaidInvoiceWithTotal & { reserveAmount: number };
 
 async function fetchPaidInvoicesWithTotals(
-  userId: string
+  businessId: string
 ): Promise<PaidInvoiceWithTotal[]> {
   const supabase = await createClient();
 
   const { data: invoices } = await supabase
     .from("invoices")
     .select("id, reference, invoice_date, paid_at, currency")
-    .eq("user_id", userId)
+    .eq("business_id", businessId)
     .eq("document_type", "invoice")
     .eq("status", "paid");
 
@@ -132,11 +132,11 @@ function invoicesForPeriod(
 }
 
 export async function getCotisationSummary(
-  userId: string,
+  businessId: string,
   settings: FiscalSettings,
   options?: { periodKey?: string }
 ) {
-  const invoices = await fetchPaidInvoicesWithTotals(userId);
+  const invoices = await fetchPaidInvoicesWithTotals(businessId);
   const frequency = settings.declaration_frequency || "quarterly";
   const currentPeriod = getCurrentDeclarationPeriod(frequency);
   const activityStart = settings.activity_start_date

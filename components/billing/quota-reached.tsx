@@ -28,7 +28,7 @@ export default function QuotaReached({
         Passez à Pro pour un accès illimité.
       </p>
       <div>
-        <Link href="/settings/billing">
+        <Link href="/account/billing">
           <Button>Passer à Pro</Button>
         </Link>
       </div>

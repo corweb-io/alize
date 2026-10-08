@@ -32,7 +32,7 @@ interface Invoice {
     name: string;
     address?: string;
   };
-  profiles?: {
+  businesses?: {
     company_name?: string;
     address?: string;
     phone?: string;
@@ -70,7 +70,7 @@ export default function InvoicePreview({
   totalHT,
   totalTTC,
 }: InvoicePreviewProps) {
-  const sender = invoice.profiles;
+  const sender = invoice.businesses;
   const senderName = getDocumentSenderName(sender);
   const legalMentions = buildLegalMentions(sender);
   const client = invoice.clients;

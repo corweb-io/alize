@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { businessPath } from "@/lib/business-path";
+import { useBusinessId } from "@/lib/use-business-id";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -26,6 +28,7 @@ interface ClientListProps {
 export default function ClientList({
   clients: initialClients,
 }: ClientListProps) {
+  const businessId = useBusinessId();
   const router = useRouter();
   const supabase = createClient();
   const [clients, setClients] = useState(initialClients);
@@ -57,7 +60,7 @@ export default function ClientList({
       .from("clients")
       .delete()
       .eq("id", clientToDelete.id)
-      .eq("user_id", user.id);
+      .eq("business_id", businessId);
 
     if (error) {
       console.error("Error deleting client:", error);
@@ -107,7 +110,7 @@ export default function ClientList({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => router.push(`/clients/${client.id}`)}
+                      onClick={() => router.push(businessPath(businessId, `/clients/${client.id}`))}
                     >
                       Voir
                     </Button>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { businessPath } from "@/lib/business-path";
+import { useBusinessId } from "@/lib/use-business-id";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -23,6 +25,7 @@ export default function ClientForm({
   client,
   initialReference,
 }: ClientFormProps) {
+  const businessId = useBusinessId();
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
@@ -72,7 +75,7 @@ export default function ClientForm({
           updated_at: new Date().toISOString(),
         })
         .eq("id", client.id)
-        .eq("user_id", user.id);
+        .eq("business_id", businessId);
 
       if (updateError) {
         setError(updateError.message);
@@ -89,6 +92,7 @@ export default function ClientForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          business_id: businessId,
           reference: formData.reference || null,
           name: formData.name,
           address: formData.address || null,
@@ -102,7 +106,7 @@ export default function ClientForm({
             description: "Passez à Pro pour ajouter plus de clients.",
             action: {
               label: "Passer à Pro",
-              onClick: () => router.push("/settings/billing"),
+              onClick: () => router.push("/account/billing"),
             },
           });
           setLoading(false);
@@ -118,7 +122,7 @@ export default function ClientForm({
         setLoading(false);
       } else {
         toast.success("Client créé");
-        router.push("/clients");
+        router.push(businessPath(businessId, "/clients"));
         router.refresh();
       }
     }
@@ -168,7 +172,7 @@ export default function ClientForm({
           <Button
             type="button"
             variant="secondary"
-            onClick={() => router.push("/clients")}
+            onClick={() => router.push(businessPath(businessId, "/clients"))}
           >
             Annuler
           </Button>

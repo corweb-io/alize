@@ -1,5 +1,7 @@
 "use client";
 
+import { useBusinessId } from "@/lib/use-business-id";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -23,6 +25,7 @@ export default function ReserveTracker({
   initialReserve,
   currency = "EUR",
 }: ReserveTrackerProps) {
+  const businessId = useBusinessId();
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
@@ -52,7 +55,7 @@ export default function ReserveTracker({
     }
 
     const payload = {
-      user_id: user.id,
+      business_id: businessId,
       period_key: periodKey,
       amount_set_aside: setAsideNum,
       amount_paid: paidNum,

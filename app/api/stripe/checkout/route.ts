@@ -56,8 +56,8 @@ export async function POST(req: Request) {
     customer: customerId,
     client_reference_id: user.id,
     line_items: [{ price: priceIdFor(interval), quantity: 1 }],
-    success_url: `${appUrl()}/settings/billing?status=success`,
-    cancel_url: `${appUrl()}/settings/billing?status=cancel`,
+    success_url: `${appUrl()}/account/billing?status=success`,
+    cancel_url: `${appUrl()}/account/billing?status=cancel`,
     allow_promotion_codes: true,
   })
 

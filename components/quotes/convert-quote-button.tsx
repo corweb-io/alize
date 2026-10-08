@@ -1,6 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { businessPath } from "@/lib/business-path";
+import { useBusinessId } from "@/lib/use-business-id";
 import { useState } from "react";
 import { toast } from "sonner";
 import Button from "@/components/ui/button";
@@ -14,6 +16,7 @@ export default function ConvertQuoteButton({
   quoteId,
   disabled = false,
 }: ConvertQuoteButtonProps) {
+  const businessId = useBusinessId();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -37,7 +40,7 @@ export default function ConvertQuoteButton({
         const data = await res.json();
         toast.info("Ce devis a déjà été converti");
         if (data.invoiceId) {
-          router.push(`/invoices/${data.invoiceId}`);
+          router.push(businessPath(businessId, `/invoices/${data.invoiceId}`));
         }
         return;
       }
@@ -49,7 +52,7 @@ export default function ConvertQuoteButton({
 
       const data = await res.json();
       toast.success("Devis converti en facture");
-      router.push(`/invoices/${data.id}`);
+      router.push(businessPath(businessId, `/invoices/${data.id}`));
       router.refresh();
     } catch (err) {
       toast.error("Conversion impossible", {

@@ -25,7 +25,7 @@ export default function Header({ user }: HeaderProps) {
           Alizé
         </p>
         <p className="hidden text-sm text-stone-500 dark:text-stone-400 lg:block">
-          Espace micro-entrepreneur
+          Espace entrepreneur
         </p>
         <div className="flex items-center gap-2 lg:gap-4">
           <div className="hidden max-w-[220px] truncate text-sm text-stone-600 dark:text-stone-400 sm:block">

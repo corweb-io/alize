@@ -1,11 +1,13 @@
 import Link from "next/link";
 import Card from "@/components/ui/card";
+import { businessPath } from "@/lib/business-path";
 import PeriodPaidCell from "@/components/cotisations/period-paid-cell";
 import { formatCurrency } from "@/lib/utils/format";
 import type { PeriodSummary } from "@/lib/finance/types";
 import type { CotisationReserve, DeclarationFrequency } from "@/lib/types/database";
 
 interface PeriodHistoryProps {
+  businessId: string;
   periods: PeriodSummary[];
   reserves: CotisationReserve[];
   selectedKey: string;
@@ -15,6 +17,7 @@ interface PeriodHistoryProps {
 }
 
 export default function PeriodHistory({
+  businessId,
   periods,
   reserves,
   selectedKey,
@@ -67,8 +70,11 @@ export default function PeriodHistory({
               const isCurrent = period.periodKey === currentKey;
               const href =
                 period.periodKey === currentKey
-                  ? "/cotisations?tab=cps"
-                  : `/cotisations?tab=cps&period=${encodeURIComponent(period.periodKey)}`;
+                  ? businessPath(businessId, "/cotisations?tab=cps")
+                  : businessPath(
+                      businessId,
+                      `/cotisations?tab=cps&period=${encodeURIComponent(period.periodKey)}`
+                    );
 
               return (
                 <tr
