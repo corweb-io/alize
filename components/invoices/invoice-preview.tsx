@@ -2,6 +2,11 @@
 
 import { formatDate, formatCurrency, formatNumber } from "@/lib/utils/format";
 import Card from "@/components/ui/card";
+import {
+  buildLegalMentions,
+  getDocumentSenderName,
+} from "@/lib/finance/legal-forms";
+import type { FiscalSettings } from "@/lib/types/database";
 
 interface InvoiceItem {
   description: string;
@@ -38,6 +43,18 @@ interface Invoice {
       IBAN?: string;
       BIC?: string;
     };
+    legal_info?: {
+      company_type?: string;
+      siret?: string;
+      siren?: string;
+      rcs?: string;
+      ape_naf?: string;
+      tva_number?: string;
+      service_type?: string;
+      share_capital?: number;
+      late_payment_notice?: string;
+    };
+    fiscal_settings?: FiscalSettings | null;
   };
   items: InvoiceItem[];
 }
@@ -54,6 +71,8 @@ export default function InvoicePreview({
   totalTTC,
 }: InvoicePreviewProps) {
   const sender = invoice.profiles;
+  const senderName = getDocumentSenderName(sender);
+  const legalMentions = buildLegalMentions(sender);
   const client = invoice.clients;
   const currency = invoice.currency || "EUR";
   const isQuote = invoice.document_type === "quote";
@@ -65,9 +84,9 @@ export default function InvoicePreview({
         {/* Header */}
         <div className="flex justify-between items-start">
           <div>
-            {sender?.company_name && (
+            {senderName && (
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {sender.company_name}
+                {senderName}
               </h2>
             )}
             {sender?.address && (
@@ -248,9 +267,21 @@ export default function InvoicePreview({
         )}
 
         {/* Footer */}
-        <div className="mt-8 text-right text-xs text-gray-500 dark:text-gray-400">
-          Prestation de service
-        </div>
+        {sender?.legal_info?.service_type && (
+          <div className="mt-8 text-right text-xs text-gray-500 dark:text-gray-400">
+            {sender.legal_info.service_type}
+          </div>
+        )}
+
+        {(legalMentions.length > 0 ||
+          sender?.legal_info?.late_payment_notice) && (
+          <div className="mt-6 space-y-1 border-t border-gray-200 pt-4 text-center text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
+            {legalMentions.length > 0 && <p>{legalMentions.join(" - ")}</p>}
+            {sender?.legal_info?.late_payment_notice && (
+              <p>{sender.legal_info.late_payment_notice}</p>
+            )}
+          </div>
+        )}
       </div>
     </Card>
   );

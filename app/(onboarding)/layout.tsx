@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { isFiscalSettingsComplete } from "@/lib/finance/cotisations-st-barth";
+import { isOnboardingComplete } from "@/lib/finance/legal-forms";
 import type { FiscalSettings } from "@/lib/types/database";
 
 export default async function OnboardingLayout({
@@ -24,7 +24,7 @@ export default async function OnboardingLayout({
     .maybeSingle();
 
   const fiscalSettings = (profile?.fiscal_settings || {}) as FiscalSettings;
-  if (isFiscalSettingsComplete(fiscalSettings)) {
+  if (isOnboardingComplete(fiscalSettings)) {
     redirect("/dashboard");
   }
 

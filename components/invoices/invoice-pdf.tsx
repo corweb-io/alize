@@ -4,6 +4,11 @@ import {
   formatCurrencyForPdf,
   formatNumberForPdf,
 } from "@/lib/utils/format";
+import {
+  buildLegalMentions,
+  getDocumentSenderName,
+} from "@/lib/finance/legal-forms";
+import type { FiscalSettings } from "@/lib/types/database";
 
 interface InvoiceItem {
   description: string;
@@ -48,8 +53,10 @@ interface Invoice {
       ape_naf?: string;
       tva_number?: string;
       service_type?: string;
+      share_capital?: number;
       late_payment_notice?: string;
     };
+    fiscal_settings?: FiscalSettings | null;
   };
   items: InvoiceItem[];
 }
@@ -280,6 +287,8 @@ export default function InvoicePDF({
   totalTTC,
 }: InvoicePDFProps) {
   const sender = invoice.profiles;
+  const senderName = getDocumentSenderName(sender);
+  const legalMentions = buildLegalMentions(sender);
   const client = invoice.clients;
   const currency = invoice.currency || "EUR";
   const isQuote = invoice.document_type === "quote";
@@ -292,8 +301,8 @@ export default function InvoicePDF({
         <View style={styles.header}>
           <View style={styles.headerRow}>
             <View>
-              {sender?.company_name && (
-                <Text style={styles.companyName}>{sender.company_name}</Text>
+              {senderName && (
+                <Text style={styles.companyName}>{senderName}</Text>
               )}
               {sender?.address &&
                 (() => {
@@ -481,36 +490,11 @@ export default function InvoicePDF({
         )}
 
         {/* Legal Disclaimer - Positioned at bottom */}
-        {(sender?.legal_info?.company_type ||
-          sender?.legal_info?.siret ||
-          sender?.legal_info?.siren ||
-          sender?.legal_info?.rcs ||
-          sender?.legal_info?.ape_naf ||
-          sender?.legal_info?.tva_number ||
+        {(legalMentions.length > 0 ||
           sender?.legal_info?.late_payment_notice) && (
           <View style={styles.legalDisclaimer}>
-            {(sender?.legal_info?.company_type ||
-              sender?.legal_info?.siret ||
-              sender?.legal_info?.siren ||
-              sender?.legal_info?.rcs ||
-              sender?.legal_info?.ape_naf ||
-              sender?.legal_info?.tva_number) && (
-              <Text>
-                {[
-                  sender?.legal_info?.company_type,
-                  sender?.legal_info?.siret &&
-                    `SIRET: ${sender.legal_info.siret}`,
-                  sender?.legal_info?.siren &&
-                    `SIREN: ${sender.legal_info.siren}`,
-                  sender?.legal_info?.rcs && `RCS: ${sender.legal_info.rcs}`,
-                  sender?.legal_info?.ape_naf &&
-                    `APE/NAF: ${sender.legal_info.ape_naf}`,
-                  sender?.legal_info?.tva_number &&
-                    `Num TVA: ${sender.legal_info.tva_number}`,
-                ]
-                  .filter(Boolean)
-                  .join(" - ")}
-              </Text>
+            {legalMentions.length > 0 && (
+              <Text>{legalMentions.join(" - ")}</Text>
             )}
             {sender?.legal_info?.late_payment_notice && (
               <Text style={styles.legalDisclaimerText}>

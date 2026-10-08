@@ -6,6 +6,15 @@ export type ActivityType =
 
 export type DeclarationFrequency = "monthly" | "quarterly";
 
+export type LegalForm =
+  | "ei_micro"
+  | "ei_reel"
+  | "eurl"
+  | "sarl"
+  | "sasu"
+  | "sas"
+  | "sci";
+
 export type Plan = "free" | "pro";
 
 export type SubscriptionStatus =
@@ -32,6 +41,10 @@ export interface Subscription {
 }
 
 export interface FiscalSettings {
+  /** Missing on legacy profiles, which are treated as micro-entreprise. */
+  legal_form?: LegalForm;
+  /** SARL only: a majority gérant is TNS (CPS), otherwise assimilé salarié. */
+  is_majority_manager?: boolean;
   activity_start_date?: string;
   activity_type?: ActivityType;
   declaration_frequency?: DeclarationFrequency;
@@ -58,6 +71,7 @@ export interface Profile {
     siret?: string;
     siren?: string;
     rcs?: string;
+    share_capital?: number;
     ape_naf?: string;
     tva_number?: string;
     service_type?: string;

@@ -6,7 +6,7 @@ import Panel from "@/components/ui/panel";
 import StatCard from "@/components/ui/stat-card";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 import { getInvoiceStatusLabel } from "@/lib/utils/labels";
-import { isFiscalSettingsComplete } from "@/lib/finance/cotisations-st-barth";
+import { isMicroFiscalSettingsComplete } from "@/lib/finance/cotisations-st-barth";
 import { getCotisationSummary } from "@/lib/finance/turnover";
 import { getObligationSummary } from "@/lib/finance/obligations";
 import { getPlafondSummary } from "@/lib/finance/plafonds";
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
 
   const fiscalSettings = (profile?.fiscal_settings || {}) as FiscalSettings;
   const fiscalCurrency = FISCAL_BASE_CURRENCY;
-  const hasFiscalConfig = isFiscalSettingsComplete(fiscalSettings);
+  const hasFiscalConfig = isMicroFiscalSettingsComplete(fiscalSettings);
 
   let cotisationData = null;
   let obligationData = null;

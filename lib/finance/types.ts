@@ -3,6 +3,7 @@ export type {
   DeclarationFrequency,
   FiscalSettings,
   CotisationReserve,
+  LegalForm,
 } from "@/lib/types/database";
 
 export type ActivityPeriod = 1 | 2 | 3;
