@@ -531,9 +531,9 @@ export default function InvoiceForm({
                   </div>
                   <div className="md:col-span-4 flex items-end">
                     <div className="w-full">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Total
-                      </label>
+                      </p>
                       <div className="rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-zinc-800 px-3 py-2 text-sm">
                         {formatCurrency(item.total_ht, formData.currency)}
                       </div>

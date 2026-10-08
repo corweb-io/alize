@@ -10,7 +10,6 @@ const LEGACY_BUSINESS_PATHS = [
   "/clients",
   "/cotisations",
   "/settings",
-  "/templates",
 ];
 
 function matchesPath(pathname: string, path: string) {

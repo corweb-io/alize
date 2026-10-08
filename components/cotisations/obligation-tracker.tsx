@@ -2,7 +2,7 @@
 
 import { useBusinessId } from "@/lib/use-business-id";
 
-import { useState } from "react";
+import { useState, useId } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import Input from "@/components/ui/input";
@@ -46,6 +46,7 @@ function ObligationRow({
   currency: string;
 }) {
   const businessId = useBusinessId();
+  const notesId = useId();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [amountDue, setAmountDue] = useState(String(obligation.amountDue));
@@ -227,10 +228,14 @@ function ObligationRow({
       </div>
 
       <div className="mt-4">
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label
+          htmlFor={notesId}
+          className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+        >
           Notes
         </label>
         <textarea
+          id={notesId}
           className="w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-teal-600 focus:ring-teal-600 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100"
           rows={2}
           placeholder="Référence de virement, numéro SIRET…"

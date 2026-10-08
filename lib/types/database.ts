@@ -189,19 +189,3 @@ export interface InvoicePayment {
   updated_at: string;
 }
 
-export interface InvoiceTemplate {
-  id: string;
-  user_id: string;
-  business_id: string;
-  name: string;
-  default_payment_method: string;
-  default_payment_terms: number;
-  default_vat_settings: {
-    vat_applicable: boolean;
-    vat_article?: string;
-  };
-  default_currency?: string;
-  is_default: boolean;
-  created_at: string;
-  updated_at: string;
-}

@@ -1,18 +1,18 @@
-# Invoice Management Dashboard
+# Alizé
 
-A comprehensive invoice management system built with Next.js 16, Supabase, and TypeScript. Features include invoice CRUD operations, PDF generation, client management, invoice templates, and payment tracking.
+Invoicing and fiscal tracking for entrepreneurs in Saint-Barthélemy, built with Next.js 16, Supabase and TypeScript. One account can manage several businesses (legal entities), each with its own clients, invoices, numbering and fiscal settings.
 
 ## Features
 
-- 🔐 **Authentication**: Email OTP (One-Time Password) authentication via Supabase
-- 📄 **Invoice Management**: Create, edit, view, and delete invoices
-- 👥 **Client Management**: Manage clients with auto-generated references
-- 📋 **Invoice Templates**: Save and reuse invoice templates
-- 💰 **Payment Tracking**: Track invoice status (draft, sent, paid, overdue)
-- 📑 **PDF Generation**: Generate professional PDF invoices matching French format
-- 🎨 **Modern UI**: Responsive design with dark mode support
-- 💳 **Subscriptions**: Free tier with quotas; Pro via Stripe Checkout
-- 🔒 **Row Level Security**: Multi-tenant data isolation
+- 🔐 **Authentication**: email one-time code via Supabase
+- 🏢 **Multiple businesses**: switch between businesses from the sidebar; data is isolated per business by Row Level Security
+- ⚖️ **Legal structures**: micro-entreprise, EI au réel, EURL, SARL, SASU, SAS and SCI, with the matching legal mentions on documents
+- 📄 **Invoices and quotes**: line items, multi-currency, quote → invoice conversion, French-format PDFs
+- 👥 **Clients**: auto-generated references
+- 💰 **Payment tracking**: draft, sent, paid, overdue, with payment date
+- 🏦 **Cotisations** (micro-entreprise): CPS Saint-Barth contributions per declaration period, revenue ceiling, declaration reminders
+- 📅 **Territorial obligations**: CFAE and TED tracking for every structure
+- 💳 **Subscriptions**: Stripe Checkout and Customer Portal (per user; quotas currently disabled)
 
 ## Tech Stack
 
@@ -27,7 +27,7 @@ A comprehensive invoice management system built with Next.js 16, Supabase, and T
 
 ### Prerequisites
 
-- Node.js 18+ and pnpm
+- Node.js 20.9+ and pnpm
 - Docker (for local Supabase development)
 - Supabase CLI
 
@@ -102,47 +102,42 @@ A comprehensive invoice management system built with Next.js 16, Supabase, and T
 
 ```
 app/
-  (auth)/              # Authentication routes
-    login/             # Login page
-    callback/          # Auth callback handler
-  (dashboard)/         # Protected dashboard routes
-    invoices/          # Invoice management
-    clients/           # Client management
-    templates/         # Template management
-    settings/          # User settings
-  api/                 # API routes
-    invoices/[id]/
-      pdf/             # PDF generation endpoint
-components/
-  ui/                  # Reusable UI components
-  invoices/            # Invoice-specific components
-  clients/             # Client-specific components
-  layout/              # Layout components
+  (auth)/                    # Login (email OTP) and auth callback
+  (onboarding)/onboarding/   # Create a business, or complete one (?business=<id>)
+  (app)/
+    b/page.tsx               # Resolves business-less URLs to the last used business
+    b/[businessId]/          # Business-scoped pages: dashboard, invoices, quotes,
+                             #   clients, cotisations, settings
+    account/billing/         # User-level subscription
+  api/                       # Route handlers (invoices, quotes, clients, PDF, Stripe)
+components/                  # UI, layout (sidebar, business switcher), feature components
 lib/
-  supabase/            # Supabase client utilities
-  utils/               # Utility functions
-  types/               # TypeScript type definitions
-supabase/
-  migrations/          # Database migrations
-  config.toml          # Supabase configuration
+  business.ts                # Server helpers: current user's businesses, getBusiness()
+  business-path.ts           # businessPath(id, "/invoices") URL helper
+  finance/                   # Legal forms, CPS rates, ceilings, declarations, obligations
+  supabase/                  # Supabase clients
+  types/                     # Database types
+proxy.ts                     # Auth guard, legacy URL redirects, active-business cookie
+supabase/migrations/         # Database migrations
 ```
 
 ## Database Schema
 
-The application uses the following main tables:
+- **businesses**: a legal entity: identity, banking, legal info (`legal_info`) and fiscal settings (`fiscal_settings.legal_form`, activity, declarations)
+- **business_members**: links users to businesses with a role (`owner` today; `admin`, `member`, `accountant` are enforced by RLS for future invitations)
+- **clients**, **invoices** (invoices and quotes, by `document_type`), **invoice_items**, **cotisation_reserves**, **annual_obligations**: scoped by `business_id`
+- **profiles**: user-level data
+- **subscriptions**: Stripe subscription state, one row per user
 
-- **profiles**: User profile information and company details
-- **clients**: Client/customer information
-- **invoices**: Main invoice records
-- **invoice_items**: Line items for invoices
-- **invoice_templates**: Reusable invoice templates
-- **subscriptions**: Stripe subscription state (one row per user)
+Every business table has RLS based on membership (`is_business_member`, `can_edit_business`). Queries in the app also filter on `business_id` explicitly, since a user can belong to several businesses.
 
-All tables have Row Level Security (RLS) enabled to ensure data isolation between users.
+Invoice (`F-000001`), quote (`D-000001`) and client (`C-000001`) references are assigned by database triggers at insert time: one gapless sequence per business, safe under concurrent inserts. Leave `reference` empty on insert to get the next one.
+
+New businesses are created through the `create_business()` RPC, which also creates the owner membership.
 
 ## Stripe subscriptions
 
-Free tier limits: **1 client**, **3 invoices per calendar month**. Pro removes both limits.
+Billing is per user account and covers all of the user's businesses. Free-tier quotas are currently disabled.
 
 ### Environment variables
 
@@ -181,36 +176,7 @@ Copy the webhook signing secret printed by the CLI into `STRIPE_WEBHOOK_SECRET` 
 
 ### Billing UI
 
-Users manage subscriptions at `/settings/billing`: upgrade via Stripe Checkout, manage/cancel via the Stripe Customer Portal. Quota enforcement runs at both the application layer and via database triggers.
-
-## Key Features
-
-### Invoice Management
-
-- Create invoices with multiple line items
-- Auto-generate invoice references (F-000067 format)
-- Support for VAT settings and exemptions
-- French invoice format compliance
-- PDF generation and download
-
-### Client Management
-
-- Create and manage clients
-- Auto-generate client references (C-000001 format)
-- View all invoices for a client
-
-### Payment Tracking
-
-- Track invoice status (draft, sent, paid, overdue)
-- Automatic overdue detection
-- Mark invoices as paid/unpaid
-- Filter invoices by status
-
-### Invoice Templates
-
-- Save invoice configurations as templates
-- Apply templates when creating new invoices
-- Set default templates
+Users manage subscriptions at `/account/billing`: upgrade via Stripe Checkout, manage or cancel via the Stripe Customer Portal.
 
 ## Development
 
@@ -226,6 +192,15 @@ npx supabase migration up
 # Push migrations to remote
 npx supabase db push
 ```
+
+### Deploying
+
+Pushing to `main` deploys to production on Vercel. Nothing applies Supabase migrations automatically, so when a change includes a migration:
+
+1. Apply it to production first: `npx supabase db push` (check with `--dry-run`).
+2. Then push the code that depends on it.
+
+Write migrations so the currently deployed app keeps working once they're applied.
 
 ### Database Reset
 

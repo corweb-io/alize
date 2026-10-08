@@ -144,10 +144,14 @@ export default function LegalForm({ business }: LegalFormProps) {
           />
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="late-payment-notice"
+              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Pénalités de retard de paiement
             </label>
             <textarea
+              id="late-payment-notice"
               className="w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-teal-600 focus:ring-teal-600 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100"
               rows={3}
               placeholder="ex. En cas de retard de paiement, une indemnité forfaitaire pour frais de recouvrement de 40 euros sera exigée…"
