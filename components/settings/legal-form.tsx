@@ -2,32 +2,35 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { businessPath } from "@/lib/business-path";
+import { useBusinessId } from "@/lib/use-business-id";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
-import type { Profile } from "@/components/settings/profile-types";
-import { useProfileUpdate } from "@/components/settings/use-profile-update";
+import type { Business } from "@/lib/types/database";
+import { useBusinessUpdate } from "@/components/settings/use-business-update";
 import { getLegalFormDefinition } from "@/lib/finance/legal-forms";
 
 interface LegalFormProps {
-  profile: Profile;
+  business: Business;
 }
 
-export default function LegalForm({ profile }: LegalFormProps) {
-  const { save, loading, error } = useProfileUpdate();
-  const legalForm = getLegalFormDefinition(profile.fiscal_settings);
+export default function LegalForm({ business }: LegalFormProps) {
+  const { save, loading, error } = useBusinessUpdate();
+  const businessId = useBusinessId();
+  const legalForm = getLegalFormDefinition(business.fiscal_settings);
   const [shareCapital, setShareCapital] = useState(
-    profile.legal_info?.share_capital?.toString() ?? ""
+    business.legal_info?.share_capital?.toString() ?? ""
   );
   const [legalInfo, setLegalInfo] = useState({
-    company_type: profile.legal_info?.company_type || "",
-    siret: profile.legal_info?.siret || "",
-    siren: profile.legal_info?.siren || "",
-    rcs: profile.legal_info?.rcs || "",
-    ape_naf: profile.legal_info?.ape_naf || "",
-    tva_number: profile.legal_info?.tva_number || "",
-    service_type: profile.legal_info?.service_type || "",
-    late_payment_notice: profile.legal_info?.late_payment_notice || "",
+    company_type: business.legal_info?.company_type || "",
+    siret: business.legal_info?.siret || "",
+    siren: business.legal_info?.siren || "",
+    rcs: business.legal_info?.rcs || "",
+    ape_naf: business.legal_info?.ape_naf || "",
+    tva_number: business.legal_info?.tva_number || "",
+    service_type: business.legal_info?.service_type || "",
+    late_payment_notice: business.legal_info?.late_payment_notice || "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +66,7 @@ export default function LegalForm({ profile }: LegalFormProps) {
               <span className="font-medium">{legalForm.label}</span>
             </span>
             <Link
-              href="/settings?tab=fiscal"
+              href={businessPath(businessId, "/settings?tab=fiscal")}
               className="text-teal-700 underline-offset-2 hover:underline dark:text-teal-300"
             >
               Modifier

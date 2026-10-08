@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Select from "@/components/ui/select";
 import type { DeclarationFrequency } from "@/lib/types/database";
 
@@ -23,6 +23,7 @@ export default function PeriodSelect({
   frequency,
 }: PeriodSelectProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentKey = periods.find((period) => period.isCurrent)?.key;
 
@@ -36,11 +37,11 @@ export default function PeriodSelect({
         params.set("period", value);
       }
       const query = params.toString();
-      router.replace(query ? `/cotisations?${query}` : "/cotisations", {
+      router.replace(query ? `${pathname}?${query}` : pathname, {
         scroll: false,
       });
     },
-    [currentKey, router, searchParams]
+    [currentKey, pathname, router, searchParams]
   );
 
   const options = periods.map((period) => ({

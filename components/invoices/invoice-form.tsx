@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { businessPath } from "@/lib/business-path";
+import { useBusinessId } from "@/lib/use-business-id";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -55,6 +57,7 @@ export default function InvoiceForm({
   defaultCurrency = "EUR",
   documentType = "invoice",
 }: InvoiceFormProps) {
+  const businessId = useBusinessId();
   const router = useRouter();
   const supabase = createClient();
   const isQuote = documentType === "quote";
@@ -106,7 +109,7 @@ export default function InvoiceForm({
     const { data } = await supabase
       .from("clients")
       .select("id, name, reference")
-      .eq("user_id", user.id)
+      .eq("business_id", businessId)
       .order("name");
 
     if (data) {
@@ -197,7 +200,7 @@ export default function InvoiceForm({
           const { data: existingInvoice } = await supabase
             .from("invoices")
             .select("id")
-            .eq("user_id", user.id)
+            .eq("business_id", businessId)
             .eq("reference", formData.reference)
             .neq("id", invoice.id)
             .maybeSingle();
@@ -232,7 +235,7 @@ export default function InvoiceForm({
             updated_at: new Date().toISOString(),
           })
           .eq("id", invoice.id)
-          .eq("user_id", user.id);
+          .eq("business_id", businessId);
 
         if (updateError) throw updateError;
 
@@ -258,6 +261,7 @@ export default function InvoiceForm({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            business_id: businessId,
             client_id: formData.client_id,
             client_reference: clientReference,
             invoice_date: formData.invoice_date,
@@ -286,7 +290,7 @@ export default function InvoiceForm({
                 "Vous avez utilisé vos 3 factures ce mois-ci. Passez à Pro pour un accès illimité.",
               action: {
                 label: "Passer à Pro",
-                onClick: () => router.push("/settings/billing"),
+                onClick: () => router.push("/account/billing"),
               },
             });
             setLoading(false);
@@ -305,9 +309,12 @@ export default function InvoiceForm({
           documentType === "quote" ? "Devis créé" : "Facture créée"
         );
         router.push(
-          documentType === "quote"
-            ? `/quotes/${created.id}`
-            : `/invoices/${created.id}`
+          businessPath(
+            businessId,
+            documentType === "quote"
+              ? `/quotes/${created.id}`
+              : `/invoices/${created.id}`
+          )
         );
         router.refresh();
         return;
@@ -630,7 +637,10 @@ export default function InvoiceForm({
             variant="secondary"
             onClick={() =>
               router.push(
-                isQuote ? `/quotes/${invoice.id}` : `/invoices/${invoice.id}`
+                businessPath(
+                  businessId,
+                  isQuote ? `/quotes/${invoice.id}` : `/invoices/${invoice.id}`
+                )
               )
             }
           >

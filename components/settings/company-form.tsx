@@ -6,21 +6,21 @@ import Select from "@/components/ui/select";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import { SUPPORTED_CURRENCIES } from "@/lib/utils/format";
-import type { Profile } from "@/components/settings/profile-types";
-import { useProfileUpdate } from "@/components/settings/use-profile-update";
+import type { Business } from "@/lib/types/database";
+import { useBusinessUpdate } from "@/components/settings/use-business-update";
 
 interface CompanyFormProps {
-  profile: Profile;
+  business: Business;
 }
 
-export default function CompanyForm({ profile }: CompanyFormProps) {
-  const { save, loading, error } = useProfileUpdate();
+export default function CompanyForm({ business }: CompanyFormProps) {
+  const { save, loading, error } = useBusinessUpdate();
   const [formData, setFormData] = useState({
-    company_name: profile.company_name || "",
-    address: profile.address || "",
-    phone: profile.phone || "",
-    email: profile.email || "",
-    default_currency: profile.default_currency || "EUR",
+    company_name: business.company_name || "",
+    address: business.address || "",
+    phone: business.phone || "",
+    email: business.email || "",
+    default_currency: business.default_currency || "EUR",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { businessPath } from "@/lib/business-path";
 import Card from "@/components/ui/card";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 import { getEncaissementDate, type PeriodInvoice } from "@/lib/finance/turnover";
 import type { PeriodSummary } from "@/lib/finance/types";
 
 interface PeriodInvoicesProps {
+  businessId: string;
   period: PeriodSummary;
   invoices: PeriodInvoice[];
   currency: string;
@@ -12,6 +14,7 @@ interface PeriodInvoicesProps {
 }
 
 export default function PeriodInvoices({
+  businessId,
   period,
   invoices,
   currency,
@@ -57,7 +60,7 @@ export default function PeriodInvoices({
               <tr key={inv.id}>
                 <td className="px-4 py-3 text-sm">
                   <Link
-                    href={`/invoices/${inv.id}`}
+                    href={businessPath(businessId, `/invoices/${inv.id}`)}
                     className="font-medium text-teal-700 hover:underline dark:text-teal-300"
                   >
                     {inv.reference}

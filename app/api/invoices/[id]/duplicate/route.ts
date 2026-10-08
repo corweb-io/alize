@@ -21,7 +21,6 @@ export async function POST(
       .from('invoices')
       .select('*')
       .eq('id', id)
-      .eq('user_id', user.id)
       .single()
 
     if (invoiceError || !originalInvoice) {
@@ -39,22 +38,12 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to load items' }, { status: 500 })
     }
 
-    // Generate new reference
-    const { data: newReference, error: refError } = await supabase.rpc(
-      'generate_invoice_reference',
-      { p_user_id: user.id }
-    )
-
-    if (refError) {
-      return NextResponse.json({ error: 'Failed to generate reference' }, { status: 500 })
-    }
-
     // Create duplicate invoice
     const { data: newInvoice, error: createError } = await supabase
       .from('invoices')
       .insert({
-        user_id: user.id,
-        reference: newReference,
+        // The reference is assigned by a DB trigger.
+        business_id: originalInvoice.business_id,
         version: '1.0',
         client_id: originalInvoice.client_id,
         client_reference: originalInvoice.client_reference,

@@ -24,7 +24,7 @@ export default function CheckoutStatus({ status }: CheckoutStatusProps) {
       return;
     }
 
-    router.replace("/settings/billing");
+    router.replace("/account/billing");
   }, [status, router]);
 
   return null;

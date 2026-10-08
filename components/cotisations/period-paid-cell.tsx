@@ -1,5 +1,7 @@
 "use client";
 
+import { useBusinessId } from "@/lib/use-business-id";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -21,6 +23,7 @@ export default function PeriodPaidCell({
   initialReserve,
   currency,
 }: PeriodPaidCellProps) {
+  const businessId = useBusinessId();
   const router = useRouter();
   const supabase = createClient();
   const [paid, setPaid] = useState(
@@ -65,7 +68,7 @@ export default function PeriodPaidCell({
         .eq("id", initialReserve.id));
     } else {
       ({ error } = await supabase.from("cotisation_reserves").insert({
-        user_id: user.id,
+        business_id: businessId,
         period_key: periodKey,
         amount_set_aside: 0,
         ...payload,
@@ -75,7 +78,7 @@ export default function PeriodPaidCell({
         ({ error } = await supabase
           .from("cotisation_reserves")
           .update(payload)
-          .eq("user_id", user.id)
+          .eq("business_id", businessId)
           .eq("period_key", periodKey));
       }
     }

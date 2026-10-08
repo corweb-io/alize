@@ -54,7 +54,8 @@ export interface FiscalSettings {
   is_artisan?: boolean;
 }
 
-export interface Profile {
+/** A legal entity. Users access businesses through business_members. */
+export interface Business {
   id: string;
   company_name?: string;
   address?: string;
@@ -79,6 +80,24 @@ export interface Profile {
   };
   fiscal_settings?: FiscalSettings;
   default_currency?: string;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type BusinessRole = "owner" | "admin" | "member" | "accountant";
+
+export interface BusinessMember {
+  business_id: string;
+  user_id: string;
+  role: BusinessRole;
+  created_at: string;
+}
+
+/** User-level data. Business identity lives on Business. */
+export interface Profile {
+  id: string;
+  email?: string;
   created_at: string;
   updated_at: string;
 }
@@ -86,6 +105,7 @@ export interface Profile {
 export interface CotisationReserve {
   id: string;
   user_id: string;
+  business_id: string;
   period_key: string;
   amount_set_aside: number;
   amount_paid: number;
@@ -98,6 +118,7 @@ export interface CotisationReserve {
 export interface AnnualObligation {
   id: string;
   user_id: string;
+  business_id: string;
   year: number;
   obligation_type: "cfae" | "ted";
   amount_due: number;
@@ -111,6 +132,7 @@ export interface AnnualObligation {
 export interface Client {
   id: string;
   user_id: string;
+  business_id: string;
   reference: string;
   name: string;
   address?: string;
@@ -121,6 +143,7 @@ export interface Client {
 export interface Invoice {
   id: string;
   user_id: string;
+  business_id: string;
   reference: string;
   version: string;
   client_id: string;
@@ -156,6 +179,7 @@ export interface InvoiceItem {
 export interface InvoiceTemplate {
   id: string;
   user_id: string;
+  business_id: string;
   name: string;
   default_payment_method: string;
   default_payment_terms: number;

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 export const runtime = 'nodejs'
 
 interface CreateClientBody {
+  business_id?: string
   reference?: string | null
   name?: string
   address?: string | null
@@ -19,29 +20,19 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json()) as CreateClientBody
+  if (!body.business_id) {
+    return NextResponse.json({ error: 'business_id is required' }, { status: 400 })
+  }
   if (!body.name?.trim()) {
     return NextResponse.json({ error: 'Name is required' }, { status: 400 })
-  }
-
-  let reference = body.reference?.trim() || ''
-  if (!reference) {
-    const { data: refData, error: refError } = await supabase.rpc('generate_client_reference', {
-      p_user_id: user.id,
-    })
-    if (refError || !refData) {
-      return NextResponse.json(
-        { error: refError?.message ?? 'Failed to generate reference' },
-        { status: 500 }
-      )
-    }
-    reference = refData
   }
 
   const { data, error } = await supabase
     .from('clients')
     .insert({
-      user_id: user.id,
-      reference,
+      business_id: body.business_id,
+      // Assigned by a DB trigger when omitted.
+      reference: body.reference?.trim() || null,
       name: body.name,
       address: body.address?.trim() || null,
     })

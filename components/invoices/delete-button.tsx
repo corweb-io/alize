@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { businessPath } from "@/lib/business-path";
+import { useBusinessId } from "@/lib/use-business-id";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Button from "@/components/ui/button";
@@ -21,6 +23,7 @@ export default function DeleteButton({
   variant = "secondary",
   size = "md",
 }: DeleteButtonProps) {
+  const businessId = useBusinessId();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -43,7 +46,7 @@ export default function DeleteButton({
       if (onDeleted) {
         onDeleted();
       } else {
-        router.push("/invoices");
+        router.push(businessPath(businessId, "/invoices"));
         router.refresh();
       }
     } catch (error: unknown) {

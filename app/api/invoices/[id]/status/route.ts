@@ -29,7 +29,6 @@ export async function PATCH(
       .from('invoices')
       .select('due_date, status, paid_at')
       .eq('id', id)
-      .eq('user_id', user.id)
       .single()
 
     if (!invoice) {
@@ -62,7 +61,6 @@ export async function PATCH(
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .eq('user_id', user.id)
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })

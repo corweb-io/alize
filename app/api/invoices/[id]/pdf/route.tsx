@@ -21,9 +21,8 @@ export async function GET(
     // Fetch invoice with relations
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
-      .select('*, clients(*), profiles(*)')
+      .select('*, clients(*), businesses(*)')
       .eq('id', id)
-      .eq('user_id', user.id)
       .single()
 
     if (invoiceError || !invoice) {

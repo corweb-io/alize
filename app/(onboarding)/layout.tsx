@@ -1,7 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { isOnboardingComplete } from "@/lib/finance/legal-forms";
-import type { FiscalSettings } from "@/lib/types/database";
 
 export default async function OnboardingLayout({
   children,
@@ -15,17 +13,6 @@ export default async function OnboardingLayout({
 
   if (!user) {
     redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("fiscal_settings")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const fiscalSettings = (profile?.fiscal_settings || {}) as FiscalSettings;
-  if (isOnboardingComplete(fiscalSettings)) {
-    redirect("/dashboard");
   }
 
   return (

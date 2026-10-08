@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, type ReactNode } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabPanel } from "@/components/ui/tabs";
 
 export const SETTINGS_TABS = [
@@ -33,6 +33,7 @@ export default function SettingsTabs({
   fiscal,
 }: SettingsTabsProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const activeTab = useMemo(() => {
@@ -52,11 +53,11 @@ export default function SettingsTabs({
       }
       params.delete("status");
       const query = params.toString();
-      router.replace(query ? `/settings?${query}` : "/settings", {
+      router.replace(query ? `${pathname}?${query}` : pathname, {
         scroll: false,
       });
     },
-    [router, searchParams]
+    [router, pathname, searchParams]
   );
 
   return (

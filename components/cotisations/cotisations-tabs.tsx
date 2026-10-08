@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, type ReactNode } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabPanel } from "@/components/ui/tabs";
 
 export const COTISATIONS_TABS = [
@@ -34,6 +34,7 @@ export default function CotisationsTabs({
   obligationsBadge,
 }: CotisationsTabsProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const activeTab = useMemo(() => {
@@ -52,11 +53,11 @@ export default function CotisationsTabs({
         params.set("tab", tabId);
       }
       const query = params.toString();
-      router.replace(query ? `/cotisations?${query}` : "/cotisations", {
+      router.replace(query ? `${pathname}?${query}` : pathname, {
         scroll: false,
       });
     },
-    [router, searchParams]
+    [router, pathname, searchParams]
   );
 
   const tabs = COTISATIONS_TABS.map((tab) => ({

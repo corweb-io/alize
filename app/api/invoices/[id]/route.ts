@@ -21,7 +21,6 @@ export async function DELETE(
       .from("invoices")
       .select("id")
       .eq("id", id)
-      .eq("user_id", user.id)
       .single();
 
     if (invoiceError || !invoice) {
@@ -45,8 +44,7 @@ export async function DELETE(
     const { error: deleteError } = await supabase
       .from("invoices")
       .delete()
-      .eq("id", id)
-      .eq("user_id", user.id);
+      .eq("id", id);
 
     if (deleteError) {
       return NextResponse.json(

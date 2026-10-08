@@ -4,20 +4,20 @@ import { useState } from "react";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
-import type { Profile } from "@/components/settings/profile-types";
-import { useProfileUpdate } from "@/components/settings/use-profile-update";
+import type { Business } from "@/lib/types/database";
+import { useBusinessUpdate } from "@/components/settings/use-business-update";
 
 interface BankingFormProps {
-  profile: Profile;
+  business: Business;
 }
 
-export default function BankingForm({ profile }: BankingFormProps) {
-  const { save, loading, error } = useProfileUpdate();
+export default function BankingForm({ business }: BankingFormProps) {
+  const { save, loading, error } = useBusinessUpdate();
   const [bankingInfo, setBankingInfo] = useState({
-    bank_name: profile.banking_info?.bank_name || "",
-    RIB: profile.banking_info?.RIB || "",
-    IBAN: profile.banking_info?.IBAN || "",
-    BIC: profile.banking_info?.BIC || "",
+    bank_name: business.banking_info?.bank_name || "",
+    RIB: business.banking_info?.RIB || "",
+    IBAN: business.banking_info?.IBAN || "",
+    BIC: business.banking_info?.BIC || "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

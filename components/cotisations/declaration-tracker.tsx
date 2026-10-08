@@ -1,5 +1,7 @@
 "use client";
 
+import { useBusinessId } from "@/lib/use-business-id";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -44,6 +46,7 @@ export default function DeclarationTracker({
   initialReserve,
   currency = "EUR",
 }: DeclarationTrackerProps) {
+  const businessId = useBusinessId();
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
@@ -67,7 +70,7 @@ export default function DeclarationTracker({
 
     const today = new Date().toISOString().slice(0, 10);
     const payload = {
-      user_id: user.id,
+      business_id: businessId,
       period_key: declaration.periodKey,
       amount_set_aside: initialReserve?.amount_set_aside ?? 0,
       amount_paid: initialReserve?.amount_paid ?? 0,
