@@ -10,25 +10,37 @@ import Select from "@/components/ui/select";
 import {
   ACTIVITY_TYPE_LABELS,
 } from "@/lib/finance/cotisations-st-barth";
+import {
+  LEGAL_FORMS,
+  LEGAL_FORM_OPTIONS,
+  isOnboardingComplete,
+} from "@/lib/finance/legal-forms";
 import type {
   ActivityType,
   DeclarationFrequency,
   FiscalSettings,
+  LegalForm,
 } from "@/lib/types/database";
 
 const STEPS = [
   {
     title: "Bienvenue",
     description:
-      "Configurez votre micro-entreprise à Saint-Barthélemy pour estimer vos cotisations, plafond CA et obligations.",
+      "Configurez votre entreprise à Saint-Barthélemy pour adapter vos factures, cotisations et obligations.",
+  },
+  {
+    title: "Votre structure",
+    description:
+      "La forme juridique détermine les mentions de vos factures et le calcul de vos charges.",
   },
   {
     title: "Votre activité",
-    description: "Ces informations déterminent vos taux CPS et votre plafond de CA.",
+    description:
+      "Ces informations déterminent vos taux CPS, votre plafond de CA et vos taxes territoriales.",
   },
   {
     title: "Déclarations",
-    description: "Fréquence de déclaration du chiffre d'affaires à la CPS.",
+    description: "Effectif et modalités de déclaration auprès de la CPS.",
   },
 ] as const;
 
@@ -48,6 +60,8 @@ export default function FiscalWizard({
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState<FiscalSettings>({
+    legal_form: initialSettings?.legal_form,
+    is_majority_manager: initialSettings?.is_majority_manager ?? true,
     activity_start_date: initialSettings?.activity_start_date ?? "",
     activity_type: initialSettings?.activity_type,
     declaration_frequency:
@@ -57,12 +71,22 @@ export default function FiscalWizard({
     is_artisan: initialSettings?.is_artisan ?? false,
   });
 
+  const legalForm = settings.legal_form
+    ? LEGAL_FORMS[settings.legal_form]
+    : undefined;
+
   const canContinue = () => {
     if (step === 1) {
-      return Boolean(settings.activity_start_date && settings.activity_type);
+      return Boolean(legalForm);
     }
     if (step === 2) {
-      return Boolean(settings.declaration_frequency);
+      return Boolean(
+        settings.activity_start_date &&
+          (!legalForm?.hasActivityType || settings.activity_type)
+      );
+    }
+    if (step === 3) {
+      return isOnboardingComplete(settings);
     }
     return true;
   };
@@ -73,7 +97,19 @@ export default function FiscalWizard({
     const { error } = await supabase.from("profiles").upsert({
       id: userId,
       email,
-      fiscal_settings: settings,
+      fiscal_settings: {
+        ...settings,
+        activity_type: legalForm?.hasActivityType
+          ? settings.activity_type
+          : undefined,
+        is_majority_manager:
+          settings.legal_form === "sarl"
+            ? settings.is_majority_manager
+            : undefined,
+        versement_liberatoire: legalForm?.isMicro
+          ? settings.versement_liberatoire
+          : false,
+      },
       updated_at: new Date().toISOString(),
     });
 
@@ -119,11 +155,17 @@ export default function FiscalWizard({
           <ul className="space-y-3 text-sm text-stone-600 dark:text-stone-400">
             <li className="flex gap-2">
               <span>📊</span>
-              <span>Suivi du plafond de chiffre d&apos;affaires</span>
+              <span>
+                Suivi du plafond de chiffre d&apos;affaires (micro-entreprise)
+              </span>
             </li>
             <li className="flex gap-2">
               <span>🏦</span>
               <span>Estimation des cotisations CPS et charges totales</span>
+            </li>
+            <li className="flex gap-2">
+              <span>🧾</span>
+              <span>Mentions légales adaptées à votre forme juridique</span>
             </li>
             <li className="flex gap-2">
               <span>📅</span>
@@ -134,6 +176,57 @@ export default function FiscalWizard({
 
         {step === 1 && (
           <div className="space-y-4">
+            <Select
+              label="Forme juridique"
+              value={settings.legal_form ?? ""}
+              onChange={(e) =>
+                setSettings({
+                  ...settings,
+                  legal_form: (e.target.value || undefined) as
+                    | LegalForm
+                    | undefined,
+                })
+              }
+              options={[
+                { value: "", label: "Sélectionnez…" },
+                ...LEGAL_FORM_OPTIONS,
+              ]}
+            />
+            {legalForm && (
+              <p className="text-sm text-stone-600 dark:text-stone-400">
+                {legalForm.description}
+              </p>
+            )}
+            {settings.legal_form === "sarl" && (
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={settings.is_majority_manager ?? true}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      is_majority_manager: e.target.checked,
+                    })
+                  }
+                  className="rounded border-stone-300 text-teal-700 focus:ring-teal-600 dark:border-stone-600"
+                />
+                <span className="text-sm text-stone-700 dark:text-stone-300">
+                  Je suis gérant majoritaire
+                </span>
+              </label>
+            )}
+            {legalForm && !legalForm.isMicro && (
+              <p className="rounded-lg bg-amber-50 p-3 text-xs leading-relaxed text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+                Le calcul automatique des cotisations CPS est pour l&apos;instant
+                réservé aux micro-entreprises. Facturation, devis et obligations
+                territoriales restent disponibles.
+              </p>
+            )}
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-4">
             <Input
               label="Date de début d'activité"
               type="date"
@@ -142,46 +235,50 @@ export default function FiscalWizard({
                 setSettings({ ...settings, activity_start_date: e.target.value })
               }
             />
-            <Select
-              label="Type d'activité"
-              value={settings.activity_type ?? ""}
-              onChange={(e) =>
-                setSettings({
-                  ...settings,
-                  activity_type: e.target.value as ActivityType,
-                  is_artisan:
-                    e.target.value === "prestations_bic"
-                      ? settings.is_artisan
-                      : false,
-                })
-              }
-              options={[
-                { value: "", label: "Sélectionnez…" },
-                ...Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => ({
-                  value,
-                  label,
-                })),
-              ]}
-            />
+            {legalForm?.hasActivityType && (
+              <Select
+                label="Type d'activité"
+                value={settings.activity_type ?? ""}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    activity_type: e.target.value as ActivityType,
+                    is_artisan:
+                      e.target.value === "prestations_bic"
+                        ? settings.is_artisan
+                        : false,
+                  })
+                }
+                options={[
+                  { value: "", label: "Sélectionnez…" },
+                  ...Object.entries(ACTIVITY_TYPE_LABELS).map(([value, label]) => ({
+                    value,
+                    label,
+                  })),
+                ]}
+              />
+            )}
           </div>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <div className="space-y-4">
-            <Select
-              label="Fréquence de déclaration (DCA)"
-              value={settings.declaration_frequency ?? "quarterly"}
-              onChange={(e) =>
-                setSettings({
-                  ...settings,
-                  declaration_frequency: e.target.value as DeclarationFrequency,
-                })
-              }
-              options={[
-                { value: "monthly", label: "Mensuelle" },
-                { value: "quarterly", label: "Trimestrielle" },
-              ]}
-            />
+            {legalForm?.isMicro && (
+              <Select
+                label="Fréquence de déclaration (DCA)"
+                value={settings.declaration_frequency ?? "quarterly"}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    declaration_frequency: e.target.value as DeclarationFrequency,
+                  })
+                }
+                options={[
+                  { value: "monthly", label: "Mensuelle" },
+                  { value: "quarterly", label: "Trimestrielle" },
+                ]}
+              />
+            )}
             <Input
               label="Nombre de salariés"
               type="number"
@@ -213,22 +310,24 @@ export default function FiscalWizard({
                 </span>
               </label>
             )}
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={settings.versement_liberatoire ?? false}
-                onChange={(e) =>
-                  setSettings({
-                    ...settings,
-                    versement_liberatoire: e.target.checked,
-                  })
-                }
-                className="rounded border-stone-300 text-teal-700 focus:ring-teal-600 dark:border-stone-600"
-              />
-              <span className="text-sm text-stone-700 dark:text-stone-300">
-                Versement libératoire de l&apos;impôt sur le revenu
-              </span>
-            </label>
+            {legalForm?.isMicro && (
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={settings.versement_liberatoire ?? false}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      versement_liberatoire: e.target.checked,
+                    })
+                  }
+                  className="rounded border-stone-300 text-teal-700 focus:ring-teal-600 dark:border-stone-600"
+                />
+                <span className="text-sm text-stone-700 dark:text-stone-300">
+                  Versement libératoire de l&apos;impôt sur le revenu
+                </span>
+              </label>
+            )}
           </div>
         )}
 

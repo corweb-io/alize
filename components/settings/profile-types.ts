@@ -18,6 +18,7 @@ export interface Profile {
     siret?: string;
     siren?: string;
     rcs?: string;
+    share_capital?: number;
     ape_naf?: string;
     tva_number?: string;
     service_type?: string;

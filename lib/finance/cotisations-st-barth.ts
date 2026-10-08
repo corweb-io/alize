@@ -6,6 +6,7 @@ import type {
   DeclarationFrequency,
   FiscalSettings,
 } from "./types";
+import { isMicroEntreprise } from "./legal-forms";
 
 /**
  * CPS Saint-Barthélemy cotisation rates for artisans, commerçants,
@@ -178,7 +179,8 @@ export function computeCpsDeclaration(
   };
 }
 
-export function isFiscalSettingsComplete(
+/** Settings required for the micro-entreprise CPS calculations. */
+export function isMicroFiscalSettingsComplete(
   settings: FiscalSettings | null | undefined
 ): settings is FiscalSettings & {
   activity_start_date: string;
@@ -186,7 +188,8 @@ export function isFiscalSettingsComplete(
   declaration_frequency: DeclarationFrequency;
 } {
   return Boolean(
-    settings?.activity_start_date &&
+    isMicroEntreprise(settings) &&
+      settings?.activity_start_date &&
       settings?.activity_type &&
       settings?.declaration_frequency
   );

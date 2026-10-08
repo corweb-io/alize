@@ -18,7 +18,7 @@ import { formatCurrency } from "@/lib/utils/format";
 import {
   ACTIVITY_TYPE_LABELS,
   getActivityPeriod,
-  isFiscalSettingsComplete,
+  isMicroFiscalSettingsComplete,
   PERIOD_LABELS,
 } from "@/lib/finance/cotisations-st-barth";
 import { getCotisationSummary } from "@/lib/finance/turnover";
@@ -27,6 +27,10 @@ import { getPlafondSummary } from "@/lib/finance/plafonds";
 import { buildDeclarationSummary } from "@/lib/finance/declarations";
 import { computePeriodCharges } from "@/lib/finance/charges";
 import { FISCAL_BASE_CURRENCY } from "@/lib/finance/currency";
+import {
+  getLegalFormDefinition,
+  isMicroEntreprise,
+} from "@/lib/finance/legal-forms";
 import type { CotisationReserve, FiscalSettings } from "@/lib/types/database";
 import TotalChargesCard from "@/components/cotisations/total-charges-card";
 
@@ -65,7 +69,41 @@ export default async function CotisationsPage({
   const fiscalSettings = (profile?.fiscal_settings || {}) as FiscalSettings;
   const fiscalCurrency = FISCAL_BASE_CURRENCY;
 
-  if (!isFiscalSettingsComplete(fiscalSettings)) {
+  if (!isMicroEntreprise(fiscalSettings)) {
+    const obligationSummary = await getObligationSummary(
+      user.id,
+      fiscalSettings
+    );
+    const legalForm = getLegalFormDefinition(fiscalSettings);
+
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Cotisations"
+          description={`Obligations territoriales pour votre ${legalForm.label} à Saint-Barthélemy.`}
+        />
+
+        <Card title="Cotisations sociales">
+          <p className="text-gray-600 dark:text-gray-400">
+            Le calcul automatique des cotisations CPS est pour l&apos;instant
+            disponible uniquement pour les micro-entreprises. Pour une{" "}
+            {legalForm.label}, les cotisations dépendent de votre bénéfice ou
+            de votre rémunération : rapprochez-vous de votre expert-comptable.
+          </p>
+        </Card>
+
+        <Card title="Obligations territoriales">
+          <ObligationTracker
+            obligations={obligationSummary.obligations}
+            year={obligationSummary.year}
+            currency={fiscalCurrency}
+          />
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isMicroFiscalSettingsComplete(fiscalSettings)) {
     return (
       <div className="space-y-6">
         <PageHeader

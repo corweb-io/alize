@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import Input from "@/components/ui/input";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import type { Profile } from "@/components/settings/profile-types";
 import { useProfileUpdate } from "@/components/settings/use-profile-update";
+import { getLegalFormDefinition } from "@/lib/finance/legal-forms";
 
 interface LegalFormProps {
   profile: Profile;
@@ -13,6 +15,10 @@ interface LegalFormProps {
 
 export default function LegalForm({ profile }: LegalFormProps) {
   const { save, loading, error } = useProfileUpdate();
+  const legalForm = getLegalFormDefinition(profile.fiscal_settings);
+  const [shareCapital, setShareCapital] = useState(
+    profile.legal_info?.share_capital?.toString() ?? ""
+  );
   const [legalInfo, setLegalInfo] = useState({
     company_type: profile.legal_info?.company_type || "",
     siret: profile.legal_info?.siret || "",
@@ -26,7 +32,16 @@ export default function LegalForm({ profile }: LegalFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await save({ legal_info: legalInfo });
+    const capital = parseFloat(shareCapital.replace(",", "."));
+    await save({
+      legal_info: {
+        ...legalInfo,
+        share_capital:
+          legalForm.requiresShareCapital && Number.isFinite(capital)
+            ? capital
+            : undefined,
+      },
+    });
   };
 
   return (
@@ -42,14 +57,30 @@ export default function LegalForm({ profile }: LegalFormProps) {
           Ces informations apparaîtront en bas de vos factures.
         </p>
         <div className="space-y-4">
-          <Input
-            label="Forme juridique"
-            placeholder="ex. Micro-entreprise, SARL, SAS"
-            value={legalInfo.company_type}
-            onChange={(e) =>
-              setLegalInfo({ ...legalInfo, company_type: e.target.value })
-            }
-          />
+          <div className="flex items-center justify-between gap-4 rounded-md bg-stone-50 px-3 py-2 text-sm dark:bg-stone-800/60">
+            <span className="text-gray-700 dark:text-gray-300">
+              Forme juridique :{" "}
+              <span className="font-medium">{legalForm.label}</span>
+            </span>
+            <Link
+              href="/settings?tab=fiscal"
+              className="text-teal-700 underline-offset-2 hover:underline dark:text-teal-300"
+            >
+              Modifier
+            </Link>
+          </div>
+
+          {legalForm.requiresShareCapital && (
+            <Input
+              label="Capital social (€)"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="ex. 1000"
+              value={shareCapital}
+              onChange={(e) => setShareCapital(e.target.value)}
+            />
+          )}
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input

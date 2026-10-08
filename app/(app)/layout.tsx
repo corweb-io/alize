@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
-import { isFiscalSettingsComplete } from "@/lib/finance/cotisations-st-barth";
+import { isOnboardingComplete } from "@/lib/finance/legal-forms";
 import type { FiscalSettings } from "@/lib/types/database";
 
 export default async function DashboardLayout({
@@ -26,7 +26,7 @@ export default async function DashboardLayout({
     .maybeSingle();
 
   const fiscalSettings = (profile?.fiscal_settings || {}) as FiscalSettings;
-  if (!isFiscalSettingsComplete(fiscalSettings)) {
+  if (!isOnboardingComplete(fiscalSettings)) {
     redirect("/onboarding");
   }
 
