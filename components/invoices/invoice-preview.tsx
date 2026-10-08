@@ -27,7 +27,8 @@ interface Invoice {
   vat_article?: string;
   notes?: string;
   client_reference?: string;
-  document_type?: "invoice" | "quote";
+  document_type?: "invoice" | "quote" | "credit_note";
+  credited_invoice?: { reference: string; invoice_date: string } | null;
   clients?: {
     name: string;
     address?: string;
@@ -76,7 +77,8 @@ export default function InvoicePreview({
   const client = invoice.clients;
   const currency = invoice.currency || "EUR";
   const isQuote = invoice.document_type === "quote";
-  const documentTitle = isQuote ? "DEVIS" : "FACTURE";
+  const isCreditNote = invoice.document_type === "credit_note";
+  const documentTitle = isQuote ? "DEVIS" : isCreditNote ? "AVOIR" : "FACTURE";
 
   return (
     <Card>
@@ -114,7 +116,10 @@ export default function InvoicePreview({
             <div className="mt-4 space-y-1 text-sm text-gray-600 dark:text-gray-400">
               <p>Référence: {invoice.reference}</p>
               <p>Version: {invoice.version}</p>
-              <p>Date de facturation: {formatDate(invoice.invoice_date)}</p>
+              <p>
+                {isCreditNote ? "Date de l'avoir" : "Date de facturation"}:{" "}
+                {formatDate(invoice.invoice_date)}
+              </p>
               {invoice.client_reference && (
                 <p>Référence client: {invoice.client_reference}</p>
               )}
@@ -134,6 +139,13 @@ export default function InvoicePreview({
               </p>
             )}
           </div>
+        )}
+
+        {isCreditNote && invoice.credited_invoice && (
+          <p className="mt-6 text-sm font-medium text-gray-900 dark:text-white">
+            Avoir annulant la facture {invoice.credited_invoice.reference} du{" "}
+            {formatDate(invoice.credited_invoice.invoice_date)}
+          </p>
         )}
 
         {/* Line Items Table */}
@@ -210,14 +222,16 @@ export default function InvoicePreview({
                 {formatCurrency(totalTTC, currency)}
               </span>
             </div>
-            <div className="flex justify-between text-base font-bold">
-              <span className="text-gray-900 dark:text-white">
-                Net à payer:
-              </span>
-              <span className="text-gray-900 dark:text-white">
-                {formatCurrency(totalTTC, currency)}
-              </span>
-            </div>
+            {!isCreditNote && (
+              <div className="flex justify-between text-base font-bold">
+                <span className="text-gray-900 dark:text-white">
+                  Net à payer:
+                </span>
+                <span className="text-gray-900 dark:text-white">
+                  {formatCurrency(totalTTC, currency)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -229,35 +243,37 @@ export default function InvoicePreview({
         )}
 
         {/* Payment Info */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-              Informations Bancaires
-            </h4>
-            {sender?.banking_info && (
+        {!isCreditNote && (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                Informations Bancaires
+              </h4>
+              {sender?.banking_info && (
+                <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  {sender.banking_info.bank_name && (
+                    <p>Banque: {sender.banking_info.bank_name}</p>
+                  )}
+                  {sender.banking_info.RIB && (
+                    <p>RIB: {sender.banking_info.RIB}</p>
+                  )}
+                  {sender.banking_info.IBAN && (
+                    <p>IBAN: {sender.banking_info.IBAN}</p>
+                  )}
+                  {sender.banking_info.BIC && (
+                    <p>BIC: {sender.banking_info.BIC}</p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div>
               <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                {sender.banking_info.bank_name && (
-                  <p>Banque: {sender.banking_info.bank_name}</p>
-                )}
-                {sender.banking_info.RIB && (
-                  <p>RIB: {sender.banking_info.RIB}</p>
-                )}
-                {sender.banking_info.IBAN && (
-                  <p>IBAN: {sender.banking_info.IBAN}</p>
-                )}
-                {sender.banking_info.BIC && (
-                  <p>BIC: {sender.banking_info.BIC}</p>
-                )}
+                <p>Date d&apos;échéance: {formatDate(invoice.due_date)}</p>
+                <p>Mode de paiement: {invoice.payment_method}</p>
               </div>
-            )}
-          </div>
-          <div>
-            <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-              <p>Date d&apos;échéance: {formatDate(invoice.due_date)}</p>
-              <p>Mode de paiement: {invoice.payment_method}</p>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Notes */}
         {invoice.notes && (

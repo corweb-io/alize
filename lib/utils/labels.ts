@@ -6,6 +6,7 @@ const INVOICE_STATUS_LABELS: Record<string, string> = {
   unpaid: "Non payée",
   accepted: "Accepté",
   declined: "Refusé",
+  cancelled: "Annulée",
 };
 
 const QUOTE_STATUS_LABELS: Record<string, string> = {

@@ -2,7 +2,7 @@
  * Check if an invoice is overdue based on due_date
  */
 export function isOverdue(dueDate: string | Date, status: string): boolean {
-  if (status === 'paid') return false
+  if (status === 'paid' || status === 'cancelled') return false
   
   const due = typeof dueDate === 'string' ? new Date(dueDate) : dueDate
   const today = new Date()

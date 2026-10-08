@@ -153,8 +153,17 @@ export interface Invoice {
   paid_at?: string | null;
   payment_method: string;
   currency?: string;
-  status: "draft" | "sent" | "paid" | "overdue" | "accepted" | "declined";
-  document_type?: "invoice" | "quote";
+  status:
+    | "draft"
+    | "sent"
+    | "paid"
+    | "overdue"
+    | "accepted"
+    | "declined"
+    | "cancelled";
+  document_type?: "invoice" | "quote" | "credit_note";
+  /** Set on credit notes: the invoice they cancel */
+  credited_invoice_id?: string | null;
   converted_to_invoice_id?: string | null;
   source_quote_id?: string | null;
   vat_applicable: boolean;

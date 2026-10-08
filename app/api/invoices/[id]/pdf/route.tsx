@@ -21,7 +21,7 @@ export async function GET(
     // Fetch invoice with relations
     const { data: invoice, error: invoiceError } = await supabase
       .from('invoices')
-      .select('*, clients(*), businesses(*)')
+      .select('*, clients(*), businesses(*), credited_invoice:credited_invoice_id(reference, invoice_date)')
       .eq('id', id)
       .single()
 
@@ -61,7 +61,7 @@ export async function GET(
     return new NextResponse(pdfBuffer as unknown as BodyInit, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${invoice.document_type === 'quote' ? 'devis' : 'facture'}-${invoice.reference}.pdf"`,
+        'Content-Disposition': `attachment; filename="${invoice.document_type === 'quote' ? 'devis' : invoice.document_type === 'credit_note' ? 'avoir' : 'facture'}-${invoice.reference}.pdf"`,
       },
     })
   } catch (error: unknown) {

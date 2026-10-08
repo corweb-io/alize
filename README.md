@@ -9,7 +9,8 @@ Invoicing and fiscal tracking for entrepreneurs in Saint-Barthélemy, built with
 - ⚖️ **Legal structures**: micro-entreprise, EI au réel, EURL, SARL, SASU, SAS and SCI, with the matching legal mentions on documents
 - 📄 **Invoices and quotes**: line items, multi-currency, quote → invoice conversion, French-format PDFs
 - 👥 **Clients**: auto-generated references
-- 💰 **Payment tracking**: draft, sent, paid, overdue, with payment date
+- 💰 **Payment tracking**: draft, sent, paid, overdue; invoices can be settled in several payments, each counted in the CPS period it was received
+- 🧾 **Credit notes (avoirs)**: cancel an issued, unpaid invoice with a numbered credit note instead of deleting it
 - 🏦 **Cotisations** (micro-entreprise): CPS Saint-Barth contributions per declaration period, revenue ceiling, declaration reminders
 - 📅 **Territorial obligations**: CFAE and TED tracking for every structure
 - 💳 **Subscriptions**: Stripe Checkout and Customer Portal (per user; quotas currently disabled)
@@ -125,13 +126,13 @@ supabase/migrations/         # Database migrations
 
 - **businesses**: a legal entity: identity, banking, legal info (`legal_info`) and fiscal settings (`fiscal_settings.legal_form`, activity, declarations)
 - **business_members**: links users to businesses with a role (`owner` today; `admin`, `member`, `accountant` are enforced by RLS for future invitations)
-- **clients**, **invoices** (invoices and quotes, by `document_type`), **invoice_items**, **cotisation_reserves**, **annual_obligations**: scoped by `business_id`
+- **clients**, **invoices** (invoices, quotes and credit notes, by `document_type`), **invoice_items**, **invoice_payments**, **cotisation_reserves**, **annual_obligations**: scoped by `business_id`
 - **profiles**: user-level data
 - **subscriptions**: Stripe subscription state, one row per user
 
 Every business table has RLS based on membership (`is_business_member`, `can_edit_business`). Queries in the app also filter on `business_id` explicitly, since a user can belong to several businesses.
 
-Invoice (`F-000001`), quote (`D-000001`) and client (`C-000001`) references are assigned by database triggers at insert time: one gapless sequence per business, safe under concurrent inserts. Leave `reference` empty on insert to get the next one.
+Invoice (`F-000001`), quote (`D-000001`), credit note (`A-000001`) and client (`C-000001`) references are assigned by database triggers at insert time: one gapless sequence per business, safe under concurrent inserts. Leave `reference` empty on insert to get the next one.
 
 New businesses are created through the `create_business()` RPC, which also creates the owner membership.
 

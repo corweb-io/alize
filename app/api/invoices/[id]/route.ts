@@ -19,12 +19,24 @@ export async function DELETE(
     // Verify invoice exists and belongs to user
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
-      .select("id")
+      .select("id, document_type, status")
       .eq("id", id)
       .single();
 
     if (invoiceError || !invoice) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+    }
+
+    if (invoice.document_type === "credit_note" || invoice.status === "cancelled") {
+      return NextResponse.json(
+        {
+          error:
+            invoice.document_type === "credit_note"
+              ? "Un avoir ne peut pas être supprimé"
+              : "Une facture annulée par un avoir ne peut pas être supprimée",
+        },
+        { status: 409 }
+      );
     }
 
     // Delete invoice items first (if cascade delete is not configured)

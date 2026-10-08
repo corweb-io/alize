@@ -38,6 +38,13 @@ export async function POST(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
+    if (balance.invoice.status === "cancelled") {
+      return NextResponse.json(
+        { error: "Cette facture est annulée par un avoir" },
+        { status: 409 }
+      );
+    }
+
     if (amount > balance.remaining + 0.005) {
       return NextResponse.json(
         { error: "Le paiement dépasse le reste à payer" },

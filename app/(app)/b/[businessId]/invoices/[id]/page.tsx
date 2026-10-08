@@ -9,6 +9,7 @@ import StatusToggle from "@/components/invoices/status-toggle";
 import InvoicePayments from "@/components/invoices/invoice-payments";
 import DuplicateButton from "@/components/invoices/duplicate-button";
 import DeleteButton from "@/components/invoices/delete-button";
+import CreditNoteButton from "@/components/invoices/credit-note-button";
 import PageHeader from "@/components/layout/page-header";
 import Panel from "@/components/ui/panel";
 import { formatDate, formatCurrency } from "@/lib/utils/format";
@@ -34,7 +35,9 @@ export default async function InvoiceDetailPage({
 
   const { data: invoice, error } = await supabase
     .from("invoices")
-    .select("*, clients(*), businesses(*)")
+    .select(
+      "*, clients(*), businesses(*), credited_invoice:credited_invoice_id(id, reference, invoice_date)"
+    )
     .eq("id", id)
     .eq("business_id", businessId)
     .single();
@@ -46,6 +49,17 @@ export default async function InvoiceDetailPage({
   if (invoice.document_type === "quote") {
     redirect(businessPath(businessId, `/quotes/${id}`));
   }
+
+  const isCreditNote = invoice.document_type === "credit_note";
+  const isCancelled = invoice.status === "cancelled";
+
+  const { data: creditNote } = isCancelled
+    ? await supabase
+        .from("invoices")
+        .select("id, reference, invoice_date")
+        .eq("credited_invoice_id", id)
+        .maybeSingle()
+    : { data: null };
 
   const { data: items } = await supabase
     .from("invoice_items")
@@ -72,10 +86,16 @@ export default async function InvoiceDetailPage({
   const totalTTC = invoiceTotalTTC(items ?? [], Boolean(invoice.vat_applicable));
   const { paidTotal, remaining } = summarizePayments(payments, totalTTC);
   const partiallyPaid = invoice.status !== "paid" && paidTotal > 0;
+  const canEdit = !isCreditNote && !isCancelled;
 
   // Check if invoice is overdue and update status if needed
   const overdue = isOverdue(invoice.due_date, invoice.status);
-  if (overdue && invoice.status !== "paid" && invoice.status !== "overdue") {
+  if (
+    !isCreditNote &&
+    overdue &&
+    invoice.status !== "paid" &&
+    invoice.status !== "overdue"
+  ) {
     // Update status to overdue in background (non-blocking)
     supabase
       .from("invoices")
@@ -86,13 +106,15 @@ export default async function InvoiceDetailPage({
   }
 
   const displayStatus =
-    overdue && invoice.status !== "paid" ? "overdue" : invoice.status;
+    !isCreditNote && overdue && invoice.status !== "paid"
+      ? "overdue"
+      : invoice.status;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={invoice.reference}
-        description={`Version ${invoice.version} · Créée le ${formatDate(invoice.created_at)}`}
+        description={`${isCreditNote ? "Avoir · " : ""}Version ${invoice.version} · Créé${isCreditNote ? "" : "e"} le ${formatDate(invoice.created_at)}`}
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href={businessPath(businessId, "/invoices")}>
@@ -101,8 +123,16 @@ export default async function InvoiceDetailPage({
             <Link href={`/api/invoices/${id}/pdf`} target="_blank">
               <Button>Télécharger le PDF</Button>
             </Link>
-            <DuplicateButton invoiceId={id} />
-            <DeleteButton invoiceId={id} invoiceReference={invoice.reference} />
+            {!isCreditNote && <DuplicateButton invoiceId={id} />}
+            {canEdit && payments.length === 0 && (
+              <CreditNoteButton
+                invoiceId={id}
+                invoiceReference={invoice.reference}
+              />
+            )}
+            {canEdit && (
+              <DeleteButton invoiceId={id} invoiceReference={invoice.reference} />
+            )}
           </div>
         }
       />
@@ -122,34 +152,66 @@ export default async function InvoiceDetailPage({
         <div className="space-y-6">
           <Panel accent>
             <h2 className="mb-4 text-lg font-semibold text-[#1a454f] dark:text-teal-50">
-              Détails de la facture
+              {isCreditNote ? "Détails de l'avoir" : "Détails de la facture"}
             </h2>
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-stone-500 dark:text-stone-400">
-                  Statut :
-                </span>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-flex rounded-full px-2 text-xs font-semibold ${
-                      displayStatus === "paid"
-                        ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200"
-                        : displayStatus === "overdue"
-                        ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200"
-                        : displayStatus === "sent"
-                        ? "bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-200"
-                        : "bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200"
-                    }`}
-                  >
-                    {getInvoiceStatusLabel(displayStatus)}
+              {isCreditNote && invoice.credited_invoice && (
+                <div className="flex justify-between">
+                  <span className="text-stone-500 dark:text-stone-400">
+                    Annule la facture :
                   </span>
-                  {partiallyPaid && (
-                    <span className="inline-flex rounded-full bg-amber-100 px-2 text-xs font-semibold text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
-                      Partiellement payée
-                    </span>
-                  )}
+                  <Link
+                    href={businessPath(
+                      businessId,
+                      `/invoices/${invoice.credited_invoice.id}`
+                    )}
+                    className="font-medium text-teal-700 hover:underline dark:text-teal-300"
+                  >
+                    {invoice.credited_invoice.reference} du{" "}
+                    {formatDate(invoice.credited_invoice.invoice_date)}
+                  </Link>
                 </div>
-              </div>
+              )}
+              {isCancelled && creditNote && (
+                <div className="flex justify-between">
+                  <span className="text-stone-500 dark:text-stone-400">
+                    Annulée par l&apos;avoir :
+                  </span>
+                  <Link
+                    href={businessPath(businessId, `/invoices/${creditNote.id}`)}
+                    className="font-medium text-teal-700 hover:underline dark:text-teal-300"
+                  >
+                    {creditNote.reference} du {formatDate(creditNote.invoice_date)}
+                  </Link>
+                </div>
+              )}
+              {!isCreditNote && (
+                <div className="flex items-center justify-between">
+                  <span className="text-stone-500 dark:text-stone-400">
+                    Statut :
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex rounded-full px-2 text-xs font-semibold ${
+                        displayStatus === "paid"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200"
+                          : displayStatus === "overdue"
+                          ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200"
+                          : displayStatus === "sent"
+                          ? "bg-teal-100 text-teal-800 dark:bg-teal-900/20 dark:text-teal-200"
+                          : "bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200"
+                      }`}
+                    >
+                      {getInvoiceStatusLabel(displayStatus)}
+                    </span>
+                    {partiallyPaid && (
+                      <span className="inline-flex rounded-full bg-amber-100 px-2 text-xs font-semibold text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+                        Partiellement payée
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
               {displayStatus === "paid" && invoice.paid_at && (
                 <div className="flex justify-between">
                   <span className="text-stone-500 dark:text-stone-400">
@@ -160,12 +222,14 @@ export default async function InvoiceDetailPage({
                   </span>
                 </div>
               )}
-              <StatusToggle
-                invoiceId={id}
-                currentStatus={displayStatus}
-                partiallyPaid={partiallyPaid}
-                remainingLabel={formatCurrency(remaining, invoice.currency)}
-              />
+              {canEdit && (
+                <StatusToggle
+                  invoiceId={id}
+                  currentStatus={displayStatus}
+                  partiallyPaid={partiallyPaid}
+                  remainingLabel={formatCurrency(remaining, invoice.currency)}
+                />
+              )}
               <div className="flex justify-between">
                 <span className="text-stone-500 dark:text-stone-400">
                   Total HT:
@@ -183,25 +247,29 @@ export default async function InvoiceDetailPage({
                 </span>
               </div>
             </div>
-            <div className="mt-6 border-t border-stone-200 pt-4 dark:border-stone-700">
-              <InvoicePayments
-                invoiceId={id}
-                payments={payments}
-                totalTTC={totalTTC}
-                paidTotal={paidTotal}
-                remaining={remaining}
-                currency={invoice.currency}
-              />
-            </div>
+            {canEdit && (
+              <div className="mt-6 border-t border-stone-200 pt-4 dark:border-stone-700">
+                <InvoicePayments
+                  invoiceId={id}
+                  payments={payments}
+                  totalTTC={totalTTC}
+                  paidTotal={paidTotal}
+                  remaining={remaining}
+                  currency={invoice.currency}
+                />
+              </div>
+            )}
           </Panel>
 
-          <Panel accent>
-            <InvoiceForm
-            invoice={{ ...invoice, items: items || [] }}
-            clients={clients || []}
-            defaultCurrency={invoice.profiles?.default_currency}
-          />
-          </Panel>
+          {canEdit && (
+            <Panel accent>
+              <InvoiceForm
+                invoice={{ ...invoice, items: items || [] }}
+                clients={clients || []}
+                defaultCurrency={invoice.profiles?.default_currency}
+              />
+            </Panel>
+          )}
         </div>
       </div>
     </div>

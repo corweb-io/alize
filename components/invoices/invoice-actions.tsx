@@ -10,11 +10,14 @@ import DeleteButton from "@/components/invoices/delete-button";
 interface InvoiceActionsProps {
   invoiceId: string;
   invoiceReference: string;
+  /** Issued credit notes and cancelled invoices can't be deleted */
+  canDelete?: boolean;
 }
 
 export default function InvoiceActions({
   invoiceId,
   invoiceReference,
+  canDelete = true,
 }: InvoiceActionsProps) {
   const businessId = useBusinessId();
   const router = useRouter();
@@ -31,15 +34,17 @@ export default function InvoiceActions({
           PDF
         </Button>
       </Link>
-      <DeleteButton
-        invoiceId={invoiceId}
-        invoiceReference={invoiceReference}
-        variant="ghost"
-        size="sm"
-        onDeleted={() => {
-          router.refresh();
-        }}
-      />
+      {canDelete && (
+        <DeleteButton
+          invoiceId={invoiceId}
+          invoiceReference={invoiceReference}
+          variant="ghost"
+          size="sm"
+          onDeleted={() => {
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

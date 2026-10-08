@@ -33,6 +33,13 @@ export async function PATCH(
 
     const { invoice } = balance
 
+    if (invoice.status === 'cancelled') {
+      return NextResponse.json(
+        { error: 'Cette facture est annulée par un avoir' },
+        { status: 409 }
+      )
+    }
+
     // Payment status is derived from invoice_payments (see the
     // invoice_payments_sync trigger): marking paid records the remaining
     // balance as one payment, marking unpaid removes all payments.

@@ -29,7 +29,8 @@ interface Invoice {
   vat_article?: string;
   notes?: string;
   client_reference?: string;
-  document_type?: "invoice" | "quote";
+  document_type?: "invoice" | "quote" | "credit_note";
+  credited_invoice?: { reference: string; invoice_date: string } | null;
   clients?: {
     name: string;
     address?: string;
@@ -292,7 +293,8 @@ export default function InvoicePDF({
   const client = invoice.clients;
   const currency = invoice.currency || "EUR";
   const isQuote = invoice.document_type === "quote";
-  const documentTitle = isQuote ? "DEVIS" : "FACTURE";
+  const isCreditNote = invoice.document_type === "credit_note";
+  const documentTitle = isQuote ? "DEVIS" : isCreditNote ? "AVOIR" : "FACTURE";
 
   return (
     <Document>
@@ -336,7 +338,8 @@ export default function InvoicePDF({
                 <Text>Référence: {invoice.reference}</Text>
                 <Text>Version: {invoice.version}</Text>
                 <Text>
-                  Date de facturation: {formatDate(invoice.invoice_date)}
+                  {isCreditNote ? "Date de l'avoir" : "Date de facturation"}:{" "}
+                  {formatDate(invoice.invoice_date)}
                 </Text>
                 {invoice.client_reference && (
                   <Text>Référence client: {invoice.client_reference}</Text>
@@ -354,6 +357,13 @@ export default function InvoicePDF({
               <Text style={styles.clientAddress}>{client.address}</Text>
             )}
           </View>
+        )}
+
+        {isCreditNote && invoice.credited_invoice && (
+          <Text style={styles.clientName}>
+            Avoir annulant la facture {invoice.credited_invoice.reference} du{" "}
+            {formatDate(invoice.credited_invoice.invoice_date)}
+          </Text>
         )}
 
         {/* Line Items Table */}
@@ -423,12 +433,14 @@ export default function InvoicePDF({
               {formatCurrencyForPdf(totalTTC, currency)}
             </Text>
           </View>
-          <View style={styles.totalFinalRowBottom}>
-            <Text style={styles.totalFinal}>Net à payer:</Text>
-            <Text style={styles.totalFinal}>
-              {formatCurrencyForPdf(totalTTC, currency)}
-            </Text>
-          </View>
+          {!isCreditNote && (
+            <View style={styles.totalFinalRowBottom}>
+              <Text style={styles.totalFinal}>Net à payer:</Text>
+              <Text style={styles.totalFinal}>
+                {formatCurrencyForPdf(totalTTC, currency)}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* VAT Info */}
@@ -439,48 +451,50 @@ export default function InvoicePDF({
         )}
 
         {/* Banking and Payment Info */}
-        <View style={styles.bankingSection}>
-          <View style={styles.bankingColumn}>
-            <Text style={styles.bankingTitle}>Informations Bancaires</Text>
-            {sender?.banking_info && (
-              <>
-                {sender.banking_info.bank_name && (
-                  <Text style={styles.bankingText}>
-                    Banque: {sender.banking_info.bank_name}
-                  </Text>
-                )}
-                {sender.banking_info.RIB && (
-                  <Text style={styles.bankingText}>
-                    RIB: {sender.banking_info.RIB}
-                  </Text>
-                )}
-                {sender.banking_info.IBAN && (
-                  <Text style={styles.bankingText}>
-                    IBAN: {sender.banking_info.IBAN}
-                  </Text>
-                )}
-                {sender.banking_info.BIC && (
-                  <Text style={styles.bankingText}>
-                    BIC: {sender.banking_info.BIC}
-                  </Text>
-                )}
-              </>
-            )}
-          </View>
-          <View style={styles.bankingColumn}>
-            <Text style={styles.paymentInfo}>
-              Date d&apos;échéance: {formatDate(invoice.due_date)}
-            </Text>
-            <Text style={styles.paymentInfo}>
-              Mode de paiement: {invoice.payment_method}
-            </Text>
-            {sender?.legal_info?.service_type && (
-              <Text style={styles.footer}>
-                {sender.legal_info.service_type}
+        {!isCreditNote && (
+          <View style={styles.bankingSection}>
+            <View style={styles.bankingColumn}>
+              <Text style={styles.bankingTitle}>Informations Bancaires</Text>
+              {sender?.banking_info && (
+                <>
+                  {sender.banking_info.bank_name && (
+                    <Text style={styles.bankingText}>
+                      Banque: {sender.banking_info.bank_name}
+                    </Text>
+                  )}
+                  {sender.banking_info.RIB && (
+                    <Text style={styles.bankingText}>
+                      RIB: {sender.banking_info.RIB}
+                    </Text>
+                  )}
+                  {sender.banking_info.IBAN && (
+                    <Text style={styles.bankingText}>
+                      IBAN: {sender.banking_info.IBAN}
+                    </Text>
+                  )}
+                  {sender.banking_info.BIC && (
+                    <Text style={styles.bankingText}>
+                      BIC: {sender.banking_info.BIC}
+                    </Text>
+                  )}
+                </>
+              )}
+            </View>
+            <View style={styles.bankingColumn}>
+              <Text style={styles.paymentInfo}>
+                Date d&apos;échéance: {formatDate(invoice.due_date)}
               </Text>
-            )}
+              <Text style={styles.paymentInfo}>
+                Mode de paiement: {invoice.payment_method}
+              </Text>
+              {sender?.legal_info?.service_type && (
+                <Text style={styles.footer}>
+                  {sender.legal_info.service_type}
+                </Text>
+              )}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Notes */}
         {invoice.notes && (

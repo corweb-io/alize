@@ -31,10 +31,10 @@ export default async function InvoicesPage({
   let query = supabase
     .from("invoices")
     .select(
-      "id, reference, invoice_date, due_date, status, currency, client_id, clients(name)"
+      "id, reference, document_type, invoice_date, due_date, status, currency, client_id, clients(name)"
     )
     .eq("business_id", businessId)
-    .eq("document_type", "invoice")
+    .in("document_type", ["invoice", "credit_note"])
     .order("created_at", { ascending: false });
 
   if (filters.status) {
@@ -103,6 +103,7 @@ export default async function InvoicesPage({
               (invoice: {
                 id: string;
                 reference: string;
+                document_type: string;
                 invoice_date: string;
                 due_date: string;
                 status: string;
@@ -110,6 +111,7 @@ export default async function InvoicesPage({
                 client_id: string;
                 clients: { name: string } | { name: string }[] | null;
               }) => {
+                const isCreditNote = invoice.document_type === "credit_note";
                 const clientName = Array.isArray(invoice.clients)
                   ? invoice.clients[0]?.name
                   : invoice.clients?.name;
@@ -120,7 +122,9 @@ export default async function InvoicesPage({
                     </TableCell>
                     <TableCell>{clientName || "Inconnu"}</TableCell>
                     <TableCell>{formatDate(invoice.invoice_date)}</TableCell>
-                    <TableCell>{formatDate(invoice.due_date)}</TableCell>
+                    <TableCell>
+                      {isCreditNote ? "—" : formatDate(invoice.due_date)}
+                    </TableCell>
                     <TableCell>
                       {formatCurrency(
                         invoiceTotals[invoice.id] || 0,
@@ -130,7 +134,9 @@ export default async function InvoicesPage({
                     <TableCell>
                       <span
                         className={`inline-flex rounded-full px-2 text-xs font-semibold ${
-                          invoice.status === "paid"
+                          isCreditNote
+                            ? "bg-violet-100 text-violet-800 dark:bg-violet-900/20 dark:text-violet-200"
+                            : invoice.status === "paid"
                             ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200"
                             : invoice.status === "overdue"
                             ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200"
@@ -139,13 +145,16 @@ export default async function InvoicesPage({
                             : "bg-stone-100 text-stone-800 dark:bg-stone-800 dark:text-stone-200"
                         }`}
                       >
-                        {getInvoiceStatusLabel(invoice.status)}
+                        {isCreditNote
+                          ? "Avoir"
+                          : getInvoiceStatusLabel(invoice.status)}
                       </span>
                     </TableCell>
                     <TableCell>
                       <InvoiceActions
                         invoiceId={invoice.id}
                         invoiceReference={invoice.reference}
+                        canDelete={!isCreditNote && invoice.status !== "cancelled"}
                       />
                     </TableCell>
                   </TableRow>
