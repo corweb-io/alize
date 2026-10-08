@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { dbErrorResponse } from "@/lib/api-errors";
 
 export async function DELETE(
   request: Request,
@@ -46,10 +47,7 @@ export async function DELETE(
       .eq("invoice_id", id);
 
     if (itemsDeleteError) {
-      return NextResponse.json(
-        { error: "Failed to delete invoice items" },
-        { status: 500 }
-      );
+      return dbErrorResponse(itemsDeleteError, "Failed to delete invoice items");
     }
 
     // Delete invoice
@@ -59,10 +57,7 @@ export async function DELETE(
       .eq("id", id);
 
     if (deleteError) {
-      return NextResponse.json(
-        { error: "Failed to delete invoice" },
-        { status: 500 }
-      );
+      return dbErrorResponse(deleteError, "Failed to delete invoice");
     }
 
     return NextResponse.json({ success: true });

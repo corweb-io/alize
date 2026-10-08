@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { isIsoDate } from "@/lib/invoices/payments";
+import { dbErrorResponse } from "@/lib/api-errors";
 
 const ERRORS: Record<string, { message: string; status: number }> = {
   invoice_not_found: { message: "Facture introuvable", status: 404 },
@@ -47,7 +48,7 @@ export async function POST(
       );
       return known
         ? NextResponse.json({ error: known[1].message }, { status: known[1].status })
-        : NextResponse.json({ error: error.message }, { status: 500 });
+        : dbErrorResponse(error);
     }
 
     const { data: creditNote } = await supabase

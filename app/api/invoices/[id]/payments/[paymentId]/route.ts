@@ -5,6 +5,7 @@ import {
   loadInvoiceBalance,
   parseAmount,
 } from "@/lib/invoices/payments";
+import { dbErrorResponse } from "@/lib/api-errors";
 
 type Params = { params: Promise<{ id: string; paymentId: string }> };
 
@@ -69,7 +70,7 @@ export async function PATCH(request: Request, { params }: Params) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbErrorResponse(error);
     }
 
     return NextResponse.json({ payment });
@@ -102,7 +103,7 @@ export async function DELETE(_request: Request, { params }: Params) {
       .select("id");
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbErrorResponse(error);
     }
     if (!deleted?.length) {
       return NextResponse.json({ error: "Payment not found" }, { status: 404 });

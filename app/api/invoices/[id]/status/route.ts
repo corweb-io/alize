@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { calculateInvoiceStatus } from '@/lib/utils/invoice-status'
 import { isIsoDate, loadInvoiceBalance } from '@/lib/invoices/payments'
+import { dbErrorResponse } from '@/lib/api-errors'
 
 export async function PATCH(
   request: Request,
@@ -63,7 +64,7 @@ export async function PATCH(
           })
 
         if (paymentError) {
-          return NextResponse.json({ error: paymentError.message }, { status: 500 })
+          return dbErrorResponse(paymentError)
         }
       }
 
@@ -77,7 +78,7 @@ export async function PATCH(
         .eq('invoice_id', id)
 
       if (deleteError) {
-        return NextResponse.json({ error: deleteError.message }, { status: 500 })
+        return dbErrorResponse(deleteError)
       }
     }
 
@@ -97,7 +98,7 @@ export async function PATCH(
       .eq('id', id)
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+      return dbErrorResponse(updateError)
     }
 
     return NextResponse.json({ status: newStatus })

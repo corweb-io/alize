@@ -5,6 +5,7 @@ import {
   loadInvoiceBalance,
   parseAmount,
 } from "@/lib/invoices/payments";
+import { dbErrorResponse } from "@/lib/api-errors";
 
 export async function POST(
   request: Request,
@@ -69,7 +70,7 @@ export async function POST(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return dbErrorResponse(error);
     }
 
     return NextResponse.json({ payment }, { status: 201 });

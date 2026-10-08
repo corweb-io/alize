@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { dbErrorResponse } from "@/lib/api-errors";
 
 export async function POST(
   _request: Request,
@@ -69,10 +70,9 @@ export async function POST(
       .single();
 
     if (createError || !invoice) {
-      return NextResponse.json(
-        { error: createError?.message ?? "Failed to create invoice" },
-        { status: 500 }
-      );
+      return createError
+        ? dbErrorResponse(createError, "Failed to create invoice")
+        : NextResponse.json({ error: "Failed to create invoice" }, { status: 500 });
     }
 
     if (items?.length) {

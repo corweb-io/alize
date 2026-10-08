@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { dbErrorResponse } from '@/lib/api-errors'
 
 export async function POST(
   request: Request,
@@ -59,7 +60,9 @@ export async function POST(
       .single()
 
     if (createError || !newInvoice) {
-      return NextResponse.json({ error: 'Failed to create duplicate' }, { status: 500 })
+      return createError
+        ? dbErrorResponse(createError, 'Failed to create duplicate')
+        : NextResponse.json({ error: 'Failed to create duplicate' }, { status: 500 })
     }
 
     // Duplicate items

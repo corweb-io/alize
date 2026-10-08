@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { dbErrorResponse } from '@/lib/api-errors'
 
 export const runtime = 'nodejs'
 
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
     .single()
 
   if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 })
+    return dbErrorResponse(insertError)
   }
 
   const itemsToInsert = body.items.map((it, index) => ({
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
   if (itemsError) {
     // Roll back the orphaned invoice header so a retry can succeed cleanly.
     await supabase.from('invoices').delete().eq('id', invoice.id)
-    return NextResponse.json({ error: itemsError.message }, { status: 500 })
+    return dbErrorResponse(itemsError)
   }
 
   return NextResponse.json({ invoice })
