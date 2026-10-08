@@ -39,8 +39,7 @@ BEGIN
   VALUES (uid, 'lefrancmathis@gmail.com')
   ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, updated_at = NOW();
 
-  -- Business: reuses the user id, like businesses migrated from profiles, so
-  -- the inserts below (user_id = uid) land in it via the business_id default.
+  -- Business: reuses the user id, like businesses migrated from profiles.
   INSERT INTO businesses (
     id, email, company_name, address, phone,
     default_currency, banking_info, legal_info, fiscal_settings, created_by
@@ -107,26 +106,26 @@ BEGIN
   );
 
   -- Clients
-  INSERT INTO clients (id, user_id, reference, name, address) VALUES
-    (c1, uid, 'C-000001', 'Villa Eden Properties', 'Lorient, Saint-Barthélemy'),
-    (c2, uid, 'C-000002', 'St Barth Yacht Services', 'Gustavia Harbour, Saint-Barthélemy'),
-    (c3, uid, 'C-000003', 'Hôtel Le Barthélemy', 'Grand Cul-de-Sac, Saint-Barthélemy'),
-    (c4, uid, 'C-000004', 'Caribbean Consulting Ltd', 'Gustavia, Saint-Barthélemy');
+  INSERT INTO clients (id, business_id, user_id, reference, name, address) VALUES
+    (c1, uid, uid, 'C-000001', 'Villa Eden Properties', 'Lorient, Saint-Barthélemy'),
+    (c2, uid, uid, 'C-000002', 'St Barth Yacht Services', 'Gustavia Harbour, Saint-Barthélemy'),
+    (c3, uid, uid, 'C-000003', 'Hôtel Le Barthélemy', 'Grand Cul-de-Sac, Saint-Barthélemy'),
+    (c4, uid, uid, 'C-000004', 'Caribbean Consulting Ltd', 'Gustavia, Saint-Barthélemy');
 
   -- Invoices (mixed statuses, spread across 2026 for cotisation tracking)
   INSERT INTO invoices (
-    id, user_id, reference, client_id, client_reference,
+    id, business_id, user_id, reference, client_id, client_reference,
     invoice_date, due_date, paid_at, payment_method, currency, status,
     vat_applicable, vat_article, notes
   ) VALUES
-    (i1, uid, 'F-000001', c1, 'C-000001', '2026-01-20', '2026-02-19', '2026-01-28', 'Virement', 'EUR', 'paid', false, NULL, 'Maintenance site web — T1'),
-    (i2, uid, 'F-000002', c2, 'C-000002', '2026-02-10', '2026-03-12', '2026-02-20', 'Virement', 'EUR', 'paid', false, NULL, 'Intégration API réservations'),
-    (i3, uid, 'F-000003', c1, 'C-000001', '2026-04-05', '2026-05-05', '2026-04-18', 'Virement', 'EUR', 'paid', false, NULL, 'Refonte UX — avril'),
-    (i4, uid, 'F-000004', c3, 'C-000003', '2026-05-15', '2026-06-14', '2026-05-30', 'Virement', 'EUR', 'paid', false, NULL, 'Dashboard analytics hôtelier'),
-    (i5, uid, 'F-000005', c4, 'C-000004', '2026-06-10', '2026-07-10', '2026-06-25', 'Virement', 'EUR', 'paid', false, NULL, 'Audit sécurité application'),
-    (i6, uid, 'F-000006', c1, 'C-000001', '2026-06-18', '2026-07-18', NULL, 'Virement', 'EUR', 'sent', false, NULL, 'Support mensuel — juin'),
-    (i7, uid, 'F-000007', c2, 'C-000002', '2026-03-01', '2026-03-31', NULL, 'Virement', 'EUR', 'overdue', false, NULL, 'Correctifs booking engine'),
-    (i8, uid, 'F-000008', c3, 'C-000003', '2026-06-22', '2026-07-22', NULL, 'Virement', 'EUR', 'draft', false, NULL, 'Projet app mobile — brouillon');
+    (i1, uid, uid, 'F-000001', c1, 'C-000001', '2026-01-20', '2026-02-19', '2026-01-28', 'Virement', 'EUR', 'paid', false, NULL, 'Maintenance site web — T1'),
+    (i2, uid, uid, 'F-000002', c2, 'C-000002', '2026-02-10', '2026-03-12', '2026-02-20', 'Virement', 'EUR', 'paid', false, NULL, 'Intégration API réservations'),
+    (i3, uid, uid, 'F-000003', c1, 'C-000001', '2026-04-05', '2026-05-05', '2026-04-18', 'Virement', 'EUR', 'paid', false, NULL, 'Refonte UX — avril'),
+    (i4, uid, uid, 'F-000004', c3, 'C-000003', '2026-05-15', '2026-06-14', '2026-05-30', 'Virement', 'EUR', 'paid', false, NULL, 'Dashboard analytics hôtelier'),
+    (i5, uid, uid, 'F-000005', c4, 'C-000004', '2026-06-10', '2026-07-10', '2026-06-25', 'Virement', 'EUR', 'paid', false, NULL, 'Audit sécurité application'),
+    (i6, uid, uid, 'F-000006', c1, 'C-000001', '2026-06-18', '2026-07-18', NULL, 'Virement', 'EUR', 'sent', false, NULL, 'Support mensuel — juin'),
+    (i7, uid, uid, 'F-000007', c2, 'C-000002', '2026-03-01', '2026-03-31', NULL, 'Virement', 'EUR', 'overdue', false, NULL, 'Correctifs booking engine'),
+    (i8, uid, uid, 'F-000008', c3, 'C-000003', '2026-06-22', '2026-07-22', NULL, 'Virement', 'EUR', 'draft', false, NULL, 'Projet app mobile — brouillon');
 
   -- Invoice line items (HT totals drive cotisation calculations)
   INSERT INTO invoice_items (invoice_id, description, additional_info, unit_price_ht, quantity, total_ht, order_index) VALUES
@@ -143,8 +142,9 @@ BEGIN
 
   -- Cotisation reserve for current quarter (Q2 2026)
   -- Paid Q2 CA HT: 2500 + 3200 + 1800 = 7500 → ~795 € at 10.6% (période 2 BNC)
-  INSERT INTO cotisation_reserves (user_id, period_key, amount_set_aside, amount_paid, notes)
+  INSERT INTO cotisation_reserves (business_id, user_id, period_key, amount_set_aside, amount_paid, notes)
   VALUES (
+    uid,
     uid,
     '2026-Q2',
     500.00,
@@ -154,9 +154,10 @@ BEGIN
 
   -- Default invoice template
   INSERT INTO invoice_templates (
-    user_id, name, default_payment_method, default_payment_terms,
+    business_id, user_id, name, default_payment_method, default_payment_terms,
     default_vat_settings, default_currency, is_default
   ) VALUES (
+    uid,
     uid,
     'Standard — Prestation BNC',
     'Virement',
