@@ -49,8 +49,8 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
 };
 
 export const PERIOD_LABELS: Record<ActivityPeriod, string> = {
-  1: "Période 1 — jusqu'à la fin du 7ème trimestre civil",
-  2: "Période 2 — du 8ème trimestre à la fin de la 3ème année civile",
+  1: "Période 1 — jusqu'à la fin du 7ème trimestre civil suivant celui du début d'activité",
+  2: "Période 2 — du 8ème trimestre civil suivant le début d'activité à la fin de la 3ème année civile",
   3: "Régime de croisière — à partir de la 4ème année civile",
 };
 
@@ -61,9 +61,11 @@ export function getCalendarQuarter(date: Date): number {
 /**
  * Determines which rate period applies based on activity start date.
  *
- * Period 1: through end of 7th calendar quarter after start
- * Period 2: from 8th quarter through end of 3rd calendar year of activity
- * Period 3: from 4th calendar year onward ("régime de croisière")
+ * Period 1: through the end of the 7th calendar quarter following the quarter
+ *           activity started in (the start quarter itself isn't counted)
+ * Period 2: from the 8th following quarter through the end of the 3rd
+ *           calendar year of activity
+ * Period 3: from the 4th calendar year onward ("régime de croisière")
  */
 export function getActivityPeriod(
   activityStartDate: Date,
@@ -74,10 +76,10 @@ export function getActivityPeriod(
   const refYear = referenceDate.getFullYear();
   const refQuarter = getCalendarQuarter(referenceDate);
 
-  const quartersSinceStart =
-    (refYear - startYear) * 4 + (refQuarter - startQuarter) + 1;
+  const quartersAfterStart =
+    (refYear - startYear) * 4 + (refQuarter - startQuarter);
 
-  if (quartersSinceStart <= 7) return 1;
+  if (quartersAfterStart <= 7) return 1;
 
   const activityCalendarYear = refYear - startYear + 1;
   if (activityCalendarYear <= 3) return 2;
