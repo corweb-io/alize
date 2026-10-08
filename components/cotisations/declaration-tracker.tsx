@@ -7,6 +7,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils/format";
 import { CPS_DCA_URL } from "@/lib/finance/declarations";
 import type { DeclarationSummary } from "@/lib/finance/declarations";
@@ -51,6 +52,12 @@ export default function DeclarationTracker({
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [declaredAt, setDeclaredAt] = useState(declaration.declaredAt);
+  const [declaredTurnover, setDeclaredTurnover] = useState(
+    String(
+      declaration.declaredTurnover ?? Math.round(declaration.turnoverEstimate)
+    )
+  );
+  const declaredTurnoverNum = parseFloat(declaredTurnover.replace(",", "."));
 
   const status = declaredAt ? "declared" : declaration.status;
   const styles = STATUS_STYLES[status];
@@ -76,6 +83,9 @@ export default function DeclarationTracker({
       amount_paid: initialReserve?.amount_paid ?? 0,
       notes: initialReserve?.notes ?? null,
       declared_at: today,
+      declared_turnover: Number.isFinite(declaredTurnoverNum)
+        ? declaredTurnoverNum
+        : null,
       updated_at: new Date().toISOString(),
     };
 
@@ -110,6 +120,7 @@ export default function DeclarationTracker({
       .from("cotisation_reserves")
       .update({
         declared_at: null,
+        declared_turnover: null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", initialReserve.id);
@@ -164,10 +175,24 @@ export default function DeclarationTracker({
       </div>
 
       <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-        CA estimé sur la période :{" "}
-        <span className="font-medium text-gray-900 dark:text-white">
-          {formatCurrency(declaration.turnoverEstimate, currency)}
-        </span>
+        {declaredAt && declaration.declaredTurnover !== null ? (
+          <>
+            CA déclaré :{" "}
+            <span className="font-medium text-gray-900 dark:text-white">
+              {formatCurrency(declaration.declaredTurnover, currency)}
+            </span>
+            {Math.abs(declaration.declaredTurnover - declaration.turnoverEstimate) >= 1 && (
+              <> (encaissé : {formatCurrency(declaration.turnoverEstimate, currency)})</>
+            )}
+          </>
+        ) : (
+          <>
+            CA estimé sur la période :{" "}
+            <span className="font-medium text-gray-900 dark:text-white">
+              {formatCurrency(declaration.turnoverEstimate, currency)}
+            </span>
+          </>
+        )}
         {declaration.cotisationsEstimate > 0 && (
           <>
             {" "}
@@ -178,6 +203,20 @@ export default function DeclarationTracker({
           </>
         )}
       </p>
+
+      {!declaredAt && (
+        <div className="mt-4 max-w-xs">
+          <Input
+            label="CA déclaré à la CPS"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="1"
+            value={declaredTurnover}
+            onChange={(e) => setDeclaredTurnover(e.target.value)}
+          />
+        </div>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <a

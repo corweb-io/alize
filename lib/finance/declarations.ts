@@ -16,6 +16,8 @@ export interface DeclarationSummary {
   status: DeclarationStatus;
   declaredAt: string | null;
   turnoverEstimate: number;
+  /** CA declared to the CPS, when recorded */
+  declaredTurnover: number | null;
   cotisationsEstimate: number;
 }
 
@@ -110,6 +112,7 @@ export function buildDeclarationSummary(
     status: getDeclarationStatus(declaredAt, deadline, now),
     declaredAt: declaredAt ?? null,
     turnoverEstimate: periodSummary.turnover,
+    declaredTurnover: periodSummary.declaredTurnover,
     cotisationsEstimate: periodSummary.cotisationsDue,
   };
 }
@@ -133,6 +136,7 @@ export function getCurrentPeriodDeclarationSummary(
     status: getDeclarationStatus(declaredAt, deadline, now),
     declaredAt: declaredAt ?? null,
     turnoverEstimate,
+    declaredTurnover: null,
     cotisationsEstimate,
   };
 }

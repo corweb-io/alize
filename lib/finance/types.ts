@@ -29,7 +29,11 @@ export interface PeriodSummary {
   label: string;
   startDate: Date;
   endDate: Date;
+  /** Encaissements recorded in the app for the period */
   turnover: number;
+  /** CA declared to the CPS, when recorded */
+  declaredTurnover: number | null;
+  /** Computed from declaredTurnover when set, otherwise from turnover */
   cotisationsDue: number;
   rate: number;
   invoiceCount: number;

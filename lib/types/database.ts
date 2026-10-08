@@ -110,6 +110,8 @@ export interface CotisationReserve {
   amount_set_aside: number;
   amount_paid: number;
   declared_at?: string | null;
+  /** CA declared to the CPS; when set, contributions due are based on it */
+  declared_turnover?: number | null;
   notes?: string;
   created_at: string;
   updated_at: string;

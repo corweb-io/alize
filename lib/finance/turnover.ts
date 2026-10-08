@@ -123,15 +123,18 @@ function sumTurnoverInRange(
 function buildPeriodSummary(
   invoices: PaidInvoiceWithTotal[],
   settings: FiscalSettings,
-  period: { key: string; label: string; startDate: Date; endDate: Date }
+  period: { key: string; label: string; startDate: Date; endDate: Date },
+  declaredTurnovers: Map<string, number>
 ): PeriodSummary {
   const periodData = sumTurnoverInRange(
     invoices,
     period.startDate,
     period.endDate
   );
+  const declaredTurnover = declaredTurnovers.get(period.key) ?? null;
+  // Once declared, what's owed to the CPS follows the declared CA.
   const cpsBreakdown = computeCpsDeclaration(
-    periodData.turnover,
+    declaredTurnover ?? periodData.turnover,
     settings,
     period.startDate
   );
@@ -142,6 +145,7 @@ function buildPeriodSummary(
     startDate: period.startDate,
     endDate: period.endDate,
     turnover: periodData.turnover,
+    declaredTurnover,
     cotisationsDue: cpsBreakdown.total,
     rate: cpsBreakdown.socialRate,
     invoiceCount: periodData.invoiceCount,
@@ -171,7 +175,18 @@ export async function getCotisationSummary(
   settings: FiscalSettings,
   options?: { periodKey?: string }
 ) {
-  const invoices = await fetchPaidInvoicesWithTotals(businessId);
+  const supabase = await createClient();
+  const [invoices, { data: reserves }] = await Promise.all([
+    fetchPaidInvoicesWithTotals(businessId),
+    supabase
+      .from("cotisation_reserves")
+      .select("period_key, declared_turnover")
+      .eq("business_id", businessId)
+      .not("declared_turnover", "is", null),
+  ]);
+  const declaredTurnovers = new Map<string, number>(
+    (reserves ?? []).map((r) => [r.period_key, Number(r.declared_turnover)])
+  );
   const frequency = settings.declaration_frequency || "quarterly";
   const currentPeriod = getCurrentDeclarationPeriod(frequency);
   const activityStart = settings.activity_start_date
@@ -192,11 +207,13 @@ export async function getCotisationSummary(
 
   const periodHistory = [...availablePeriods]
     .reverse()
-    .map((period) => buildPeriodSummary(invoices, settings, period));
+    .map((period) =>
+      buildPeriodSummary(invoices, settings, period, declaredTurnovers)
+    );
 
   const periodSummary =
     periodHistory.find((period) => period.periodKey === currentPeriod.key) ??
-    buildPeriodSummary(invoices, settings, currentPeriod);
+    buildPeriodSummary(invoices, settings, currentPeriod, declaredTurnovers);
   const selectedPeriodSummary =
     periodHistory.find((period) => period.periodKey === selectedPeriod.key) ??
     periodSummary;

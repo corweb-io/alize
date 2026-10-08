@@ -94,7 +94,14 @@ export default function PeriodHistory({
                     )}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">
-                    {formatCurrency(period.turnover, currency)}
+                    {formatCurrency(period.declaredTurnover ?? period.turnover, currency)}
+                    {period.declaredTurnover !== null &&
+                      Math.abs(period.declaredTurnover - period.turnover) >= 1 && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          déclaré · encaissé{" "}
+                          {formatCurrency(period.turnover, currency)}
+                        </div>
+                      )}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-400">
                     {period.rate}%
@@ -136,7 +143,8 @@ export default function PeriodHistory({
       <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
         Indiquez le montant déjà versé à la CPS pour chaque période. Les
         cotisations sont calculées avec le taux applicable à cette date
-        (périodes 1, 2 ou régime de croisière).
+        (périodes 1, 2 ou régime de croisière), sur le CA déclaré une fois la
+        période déclarée, sinon sur les encaissements enregistrés.
       </p>
     </Card>
   );
