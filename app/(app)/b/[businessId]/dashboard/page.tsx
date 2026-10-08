@@ -11,6 +11,10 @@ import { getInvoiceStatusLabel } from "@/lib/utils/labels";
 import { isMicroFiscalSettingsComplete } from "@/lib/finance/cotisations-st-barth";
 import { getCotisationSummary } from "@/lib/finance/turnover";
 import { getObligationSummary } from "@/lib/finance/obligations";
+import {
+  getReceivablesSummary,
+  getRevenueSummary,
+} from "@/lib/finance/revenue";
 import { getPlafondSummary } from "@/lib/finance/plafonds";
 import {
   buildDeclarationSummary,
@@ -59,11 +63,6 @@ export default async function DashboardPage({
 
   if (!user) redirect("/login");
 
-  const { count: invoiceCount } = await supabase
-    .from("invoices")
-    .select("*", { count: "exact", head: true })
-    .eq("business_id", businessId);
-
   const { count: clientCount } = await supabase
     .from("clients")
     .select("*", { count: "exact", head: true })
@@ -81,14 +80,18 @@ export default async function DashboardPage({
   const fiscalCurrency = FISCAL_BASE_CURRENCY;
   const hasFiscalConfig = isMicroFiscalSettingsComplete(fiscalSettings);
 
+  const [revenue, receivables, obligationData] = await Promise.all([
+    getRevenueSummary(businessId),
+    getReceivablesSummary(businessId),
+    getObligationSummary(businessId, fiscalSettings),
+  ]);
+
   let cotisationData = null;
-  let obligationData = null;
   let plafondData = null;
   let declarationData = null;
   let chargesData = null;
   if (hasFiscalConfig) {
     cotisationData = await getCotisationSummary(businessId, fiscalSettings);
-    obligationData = await getObligationSummary(businessId, fiscalSettings);
     plafondData = getPlafondSummary(
       fiscalSettings.activity_type,
       cotisationData.ytdTurnover
@@ -124,53 +127,83 @@ export default async function DashboardPage({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Total factures"
-          value={invoiceCount || 0}
+          label={`CA encaissé ${revenue.year}`}
+          value={formatCurrency(revenue.yearToDate, fiscalCurrency)}
+          icon={chartIcon}
+          iconClassName="bg-[#1a454f] text-white"
+          href={businessPath(
+            businessId,
+            cotisationData ? "/cotisations" : "/invoices"
+          )}
+          valueClassName={
+            plafondData && plafondData.status !== "ok"
+              ? plafondData.status === "critical"
+                ? "text-red-800 dark:text-red-300"
+                : "text-amber-800 dark:text-amber-300"
+              : undefined
+          }
+        />
+        {cotisationData ? (
+          <StatCard
+            label={`Cotisations (${cotisationData.periodSummary.label})`}
+            value={formatCurrency(
+              cotisationData.periodSummary.cotisationsDue,
+              fiscalCurrency
+            )}
+            icon={coinIcon}
+            iconClassName="bg-amber-600 text-white"
+            href={businessPath(businessId, "/cotisations")}
+            valueClassName="text-amber-800 dark:text-amber-300"
+          />
+        ) : (
+          <StatCard
+            label={`CA encaissé ${revenue.quarterLabel}`}
+            value={formatCurrency(revenue.quarter, fiscalCurrency)}
+            icon={chartIcon}
+            iconClassName="bg-teal-700 text-white"
+            href={businessPath(businessId, "/invoices")}
+          />
+        )}
+        <StatCard
+          label="À encaisser"
+          value={formatCurrency(receivables.outstanding, fiscalCurrency)}
+          hint={
+            receivables.overdueCount > 0
+              ? `dont ${formatCurrency(receivables.overdue, fiscalCurrency)} en retard`
+              : receivables.outstandingCount > 0
+                ? `${receivables.outstandingCount} facture${receivables.outstandingCount > 1 ? "s" : ""} en attente`
+                : "Aucune facture en attente"
+          }
+          hintClassName={
+            receivables.overdueCount > 0
+              ? "font-medium text-red-700 dark:text-red-300"
+              : undefined
+          }
           icon={docIcon}
-          iconClassName="bg-teal-700 text-white"
+          iconClassName={
+            receivables.overdueCount > 0
+              ? "bg-red-700 text-white"
+              : "bg-teal-600 text-white"
+          }
           href={businessPath(businessId, "/invoices")}
+          valueClassName={
+            receivables.overdueCount > 0
+              ? "text-red-800 dark:text-red-300"
+              : undefined
+          }
         />
         <StatCard
-          label="Total clients"
+          label="Clients"
           value={clientCount || 0}
           icon={usersIcon}
           iconClassName="bg-teal-600 text-white"
           href={businessPath(businessId, "/clients")}
         />
-        {cotisationData ? (
-          <>
-            <StatCard
-              label={`Cotisations (${cotisationData.periodSummary.label})`}
-              value={formatCurrency(
-                cotisationData.periodSummary.cotisationsDue,
-                fiscalCurrency
-              )}
-              icon={coinIcon}
-              iconClassName="bg-amber-600 text-white"
-              href={businessPath(businessId, "/cotisations")}
-              valueClassName="text-amber-800 dark:text-amber-300"
-            />
-            <StatCard
-              label={`CA ${new Date().getFullYear()}`}
-              value={formatCurrency(cotisationData.ytdTurnover, fiscalCurrency)}
-              icon={chartIcon}
-              iconClassName="bg-[#1a454f] text-white"
-              href={businessPath(businessId, "/cotisations")}
-              valueClassName={
-                plafondData && plafondData.status !== "ok"
-                  ? plafondData.status === "critical"
-                    ? "text-red-800 dark:text-red-300"
-                    : "text-amber-800 dark:text-amber-300"
-                  : undefined
-              }
-            />
-          </>
-        ) : null}
       </div>
 
       {chargesData && (
         <TotalChargesCard
-                  businessId={businessId}
+          businessId={businessId}
           charges={chargesData}
           periodTurnover={cotisationData!.periodSummary.turnover}
           currency={fiscalCurrency}

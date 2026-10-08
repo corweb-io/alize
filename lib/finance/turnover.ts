@@ -55,7 +55,7 @@ type PaymentRow = {
   } | null;
 };
 
-async function fetchPaidInvoicesWithTotals(
+export async function fetchPaidInvoicesWithTotals(
   businessId: string
 ): Promise<PaidInvoiceWithTotal[]> {
   const supabase = await createClient();

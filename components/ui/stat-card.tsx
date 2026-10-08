@@ -8,6 +8,9 @@ interface StatCardProps {
   iconClassName?: string;
   href?: string;
   valueClassName?: string;
+  /** Small secondary line under the value. */
+  hint?: ReactNode;
+  hintClassName?: string;
 }
 
 export default function StatCard({
@@ -17,6 +20,8 @@ export default function StatCard({
   iconClassName = "bg-teal-700 text-white",
   href,
   valueClassName = "text-[#1a454f] dark:text-teal-50",
+  hint,
+  hintClassName = "text-stone-500 dark:text-stone-400",
 }: StatCardProps) {
   const content = (
     <div className="flex items-center gap-4">
@@ -32,6 +37,7 @@ export default function StatCard({
         <p className={`text-2xl font-semibold tracking-tight ${valueClassName}`}>
           {value}
         </p>
+        {hint && <p className={`mt-0.5 text-xs ${hintClassName}`}>{hint}</p>}
       </div>
     </div>
   );

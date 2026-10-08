@@ -177,7 +177,7 @@ const BENEFITS = [
   {
     title: "Suivi du chiffre d'affaires",
     description:
-      "Visualisez votre CA pour vos déclarations trimestrielles ou mensuelles.",
+      "CA encaissé, factures à encaisser et obligations, pour chacune de vos entreprises.",
     icon: (
       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -186,7 +186,7 @@ const BENEFITS = [
   },
   {
     title: "Cotisations CPS DROM",
-    description: "Taux réduits Saint-Barth intégrés — BIC, BNC, location meublée.",
+    description: "Micro-entreprise : taux réduits Saint-Barth intégrés (BIC, BNC, location meublée).",
     icon: (
       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -220,11 +220,12 @@ export default function AuthShell({ children }: { children: ReactNode }) {
             Alizé
           </h1>
           <p className="mt-2 text-sm font-medium text-teal-800/70 dark:text-teal-400/80">
-            Micro-entreprise · CPS
+            Micro-entreprise · Société · CPS
           </p>
           <p className="mt-4 max-w-md text-base leading-relaxed text-stone-600 dark:text-stone-400">
-            Factures conformes, suivi du chiffre d&apos;affaires et cotisations CPS
-            — pensé pour les micro-entrepreneurs de l&apos;île.
+            Factures conformes, suivi du chiffre d&apos;affaires, cotisations CPS
+            et obligations territoriales, pensé pour les entrepreneurs de
+            l&apos;île.
           </p>
 
           <ul className="mt-6 space-y-3">
@@ -246,8 +247,8 @@ export default function AuthShell({ children }: { children: ReactNode }) {
           <DisclaimerAside />
 
           <p className="mt-4 text-xs text-stone-400 dark:text-stone-600">
-            Réservé aux micro-entrepreneurs inscrits à la CPS · Artisans ·
-            Commerçants · Professions libérales
+            Micro-entreprises, entreprises individuelles et sociétés · Artisans
+            · Commerçants · Professions libérales
           </p>
         </section>
 
@@ -257,7 +258,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
               Alizé
             </h1>
             <p className="mt-1 text-sm text-teal-800/70 dark:text-teal-400/80">
-              Micro-entreprise · Saint-Barth
+              Facturation · Saint-Barth
             </p>
           </div>
 
@@ -265,7 +266,7 @@ export default function AuthShell({ children }: { children: ReactNode }) {
           <FactureSketch />
           <DisclaimerAside compact />
           <p className="mt-3 shrink-0 text-center text-xs text-stone-400 dark:text-stone-600 lg:hidden">
-            Réservé aux micro-entrepreneurs inscrits à la CPS
+            Micro-entreprises, entreprises individuelles et sociétés
           </p>
         </main>
       </div>

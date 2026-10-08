@@ -201,7 +201,7 @@ export default function LoginPage() {
             </h2>
             <p className="text-sm leading-relaxed text-stone-500 dark:text-stone-400">
               {step === "email" ? (
-                "Connectez-vous ou créez votre espace micro-entreprise en quelques secondes — sans mot de passe."
+                "Connectez-vous ou créez votre espace entrepreneur en quelques secondes, sans mot de passe."
               ) : (
                 <>
                   Saisissez le code à 6 chiffres envoyé à{" "}
@@ -241,8 +241,7 @@ export default function LoginPage() {
               </Button>
 
               <p className="text-center text-xs leading-relaxed text-stone-400 dark:text-stone-500">
-                Première visite ? Votre compte micro-entreprise sera créé
-                automatiquement.
+                Première visite ? Votre compte sera créé automatiquement.
               </p>
             </form>
           ) : (

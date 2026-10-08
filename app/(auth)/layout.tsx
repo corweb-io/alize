@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Connexion",
   description:
-    "Facturation, déclaration de CA et cotisations CPS pour les micro-entrepreneurs de Saint-Barthélemy.",
+    "Facturation, suivi du chiffre d'affaires, cotisations CPS et obligations territoriales pour les entrepreneurs de Saint-Barthélemy.",
 };
 
 export default function AuthLayout({

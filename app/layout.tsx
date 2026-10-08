@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     template: "%s — Alizé",
   },
   description:
-    "Facturation, déclaration de CA et cotisations CPS pour les micro-entrepreneurs de Saint-Barthélemy.",
+    "Facturation, suivi du chiffre d'affaires, cotisations CPS et obligations territoriales pour les entrepreneurs de Saint-Barthélemy.",
 };
 
 export default function RootLayout({
