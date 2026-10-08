@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { calculateInvoiceStatus } from '@/lib/utils/invoice-status'
+import { isIsoDate, loadInvoiceBalance } from '@/lib/invoices/payments'
 
 export async function PATCH(
   request: Request,
@@ -24,40 +25,66 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
     }
 
-    // Get current invoice to check due date
-    const { data: invoice } = await supabase
-      .from('invoices')
-      .select('due_date, status, paid_at')
-      .eq('id', id)
-      .single()
+    const balance = await loadInvoiceBalance(supabase, id)
 
-    if (!invoice) {
+    if (!balance) {
       return NextResponse.json({ error: 'Invoice not found' }, { status: 404 })
     }
 
-    // Calculate status if marking as paid/unpaid
-    const newStatus =
-      status === 'paid' || status === 'unpaid'
-        ? calculateInvoiceStatus(invoice.due_date, invoice.status, status === 'paid')
-        : status
+    const { invoice } = balance
 
-    const paidAt =
-      typeof paidAtInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(paidAtInput)
-        ? paidAtInput
-        : null
+    // Payment status is derived from invoice_payments (see the
+    // invoice_payments_sync trigger): marking paid records the remaining
+    // balance as one payment, marking unpaid removes all payments.
+    if (status === 'paid') {
+      if (!isIsoDate(paidAtInput)) {
+        return NextResponse.json(
+          { error: "Indiquez la date d'encaissement" },
+          { status: 400 }
+        )
+      }
 
-    if (newStatus === 'paid' && !paidAt) {
-      return NextResponse.json(
-        { error: "Indiquez la date d'encaissement" },
-        { status: 400 }
-      )
+      if (balance.remaining > 0) {
+        const { error: paymentError } = await supabase
+          .from('invoice_payments')
+          .insert({
+            invoice_id: id,
+            business_id: invoice.business_id,
+            amount: balance.remaining,
+            paid_on: paidAtInput,
+            payment_method: invoice.payment_method,
+          })
+
+        if (paymentError) {
+          return NextResponse.json({ error: paymentError.message }, { status: 500 })
+        }
+      }
+
+      return NextResponse.json({ status: 'paid' })
     }
+
+    if (status === 'unpaid' && balance.payments.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('invoice_payments')
+        .delete()
+        .eq('invoice_id', id)
+
+      if (deleteError) {
+        return NextResponse.json({ error: deleteError.message }, { status: 500 })
+      }
+    }
+
+    const currentStatus = invoice.status === 'paid' ? 'sent' : invoice.status
+    const newStatus =
+      status === 'unpaid'
+        ? calculateInvoiceStatus(invoice.due_date, currentStatus, false)
+        : status
 
     const { error: updateError } = await supabase
       .from('invoices')
       .update({
         status: newStatus,
-        paid_at: newStatus === 'paid' ? paidAt : null,
+        paid_at: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

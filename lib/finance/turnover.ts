@@ -12,13 +12,24 @@ import {
 } from "./periods";
 import type { FiscalSettings, PeriodSummary } from "./types";
 
+/**
+ * One encaissement: a payment received on an invoice. An invoice settled in
+ * several payments yields several rows, each attributed to the period of its
+ * own date.
+ */
 export interface PaidInvoiceWithTotal {
+  /** Payment id */
   id: string;
+  invoice_id: string;
   reference: string;
   invoice_date: string;
+  /** Date the payment was received */
   paid_at: string | null;
+  /** HT share of this payment */
   total_ht: number;
   total_ht_base: number;
+  /** Invoice total HT, to tell partial payments apart */
+  invoice_total_ht: number;
   currency?: string;
 }
 
@@ -31,21 +42,37 @@ export function getEncaissementDate(invoice: {
 
 export type PeriodInvoice = PaidInvoiceWithTotal & { reserveAmount: number };
 
+type PaymentRow = {
+  id: string;
+  invoice_id: string;
+  amount: number | string;
+  paid_on: string;
+  invoices: {
+    reference: string;
+    invoice_date: string;
+    currency: string | null;
+    vat_applicable: boolean | null;
+  } | null;
+};
+
 async function fetchPaidInvoicesWithTotals(
   businessId: string
 ): Promise<PaidInvoiceWithTotal[]> {
   const supabase = await createClient();
 
-  const { data: invoices } = await supabase
-    .from("invoices")
-    .select("id, reference, invoice_date, paid_at, currency")
+  const { data } = await supabase
+    .from("invoice_payments")
+    .select(
+      "id, invoice_id, amount, paid_on, invoices!inner(reference, invoice_date, currency, vat_applicable, document_type)"
+    )
     .eq("business_id", businessId)
-    .eq("document_type", "invoice")
-    .eq("status", "paid");
+    .eq("invoices.document_type", "invoice")
+    .order("paid_on");
 
-  if (!invoices?.length) return [];
+  const payments = (data ?? []) as unknown as PaymentRow[];
+  if (!payments.length) return [];
 
-  const invoiceIds = invoices.map((inv) => inv.id);
+  const invoiceIds = [...new Set(payments.map((p) => p.invoice_id))];
   const { data: items } = await supabase
     .from("invoice_items")
     .select("invoice_id, total_ht")
@@ -57,16 +84,24 @@ async function fetchPaidInvoicesWithTotals(
       (totals[item.invoice_id] || 0) + parseFloat(String(item.total_ht || 0));
   });
 
-  const rawInvoices = invoices.map((inv) => ({
-    id: inv.id,
-    reference: inv.reference,
-    invoice_date: inv.invoice_date,
-    paid_at: inv.paid_at ?? null,
-    total_ht: totals[inv.id] || 0,
-    currency: inv.currency,
-  }));
+  const rawPayments = payments.map((payment) => {
+    const invoice = payment.invoices;
+    const amount = parseFloat(String(payment.amount || 0));
+    // Payments are TTC; turnover is HT.
+    const htShare = invoice?.vat_applicable ? amount / 1.2 : amount;
+    return {
+      id: payment.id,
+      invoice_id: payment.invoice_id,
+      reference: invoice?.reference ?? "",
+      invoice_date: invoice?.invoice_date ?? payment.paid_on,
+      paid_at: payment.paid_on,
+      total_ht: Math.round(htShare * 100) / 100,
+      invoice_total_ht: totals[payment.invoice_id] || 0,
+      currency: invoice?.currency ?? undefined,
+    };
+  });
 
-  return convertAmountsToBaseCurrency(rawInvoices, FISCAL_BASE_CURRENCY);
+  return convertAmountsToBaseCurrency(rawPayments, FISCAL_BASE_CURRENCY);
 }
 
 function sumTurnoverInRange(
@@ -81,7 +116,7 @@ function sumTurnoverInRange(
 
   return {
     turnover: filtered.reduce((sum, inv) => sum + inv.total_ht_base, 0),
-    invoiceCount: filtered.length,
+    invoiceCount: new Set(filtered.map((inv) => inv.invoice_id)).size,
   };
 }
 

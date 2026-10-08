@@ -60,11 +60,17 @@ export default function PeriodInvoices({
               <tr key={inv.id}>
                 <td className="px-4 py-3 text-sm">
                   <Link
-                    href={businessPath(businessId, `/invoices/${inv.id}`)}
+                    href={businessPath(businessId, `/invoices/${inv.invoice_id}`)}
                     className="font-medium text-teal-700 hover:underline dark:text-teal-300"
                   >
                     {inv.reference}
                   </Link>
+                  {inv.total_ht < inv.invoice_total_ht - 0.005 && (
+                    <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                      paiement partiel sur{" "}
+                      {formatCurrency(inv.invoice_total_ht, inv.currency || currency)}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                   {formatDate(inv.invoice_date)}
@@ -101,7 +107,8 @@ export default function PeriodInvoices({
       </div>
       <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
         CA rattaché à {period.label} selon la date d&apos;encaissement, pas la
-        date de facture. Provisions CPS (cotisations {period.rate}% + formation
+        date de facture. Une facture réglée en plusieurs fois compte chaque
+        paiement sur la période où il a été reçu. Provisions CPS (cotisations {period.rate}% + formation
         + taxe chambre). Les devises étrangères sont converties au taux du jour
         d&apos;encaissement.
       </p>

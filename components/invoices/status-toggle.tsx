@@ -11,7 +11,9 @@ import { getInvoiceStatusLabel } from "@/lib/utils/labels";
 interface StatusToggleProps {
   invoiceId: string;
   currentStatus: string;
-  paidAt?: string | null;
+  /** True when part of the invoice has already been paid */
+  partiallyPaid?: boolean;
+  remainingLabel?: string;
 }
 
 function todayIsoDate() {
@@ -21,14 +23,13 @@ function todayIsoDate() {
 export default function StatusToggle({
   invoiceId,
   currentStatus,
-  paidAt,
+  partiallyPaid = false,
+  remainingLabel,
 }: StatusToggleProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [askPaidDate, setAskPaidDate] = useState(false);
-  const [encaissementDate, setEncaissementDate] = useState(
-    paidAt || todayIsoDate()
-  );
+  const [encaissementDate, setEncaissementDate] = useState(todayIsoDate());
 
   const updateStatus = async (newStatus: string, paidOn?: string) => {
     setLoading(true);
@@ -70,7 +71,7 @@ export default function StatusToggle({
   };
 
   const openPaidDateModal = () => {
-    setEncaissementDate(paidAt || todayIsoDate());
+    setEncaissementDate(todayIsoDate());
     setAskPaidDate(true);
   };
 
@@ -83,28 +84,18 @@ export default function StatusToggle({
           onClick={openPaidDateModal}
           disabled={loading}
         >
-          Marquer payée
+          {partiallyPaid ? "Solder la facture" : "Marquer payée"}
         </Button>
       )}
       {currentStatus === "paid" && (
-        <>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={openPaidDateModal}
-            disabled={loading}
-          >
-            Modifier la date d&apos;encaissement
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => updateStatus("unpaid")}
-            disabled={loading}
-          >
-            Marquer non payée
-          </Button>
-        </>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => updateStatus("unpaid")}
+          disabled={loading}
+        >
+          Marquer non payée
+        </Button>
       )}
       {currentStatus === "draft" && (
         <Button
@@ -121,16 +112,17 @@ export default function StatusToggle({
         isOpen={askPaidDate}
         onClose={() => setAskPaidDate(false)}
         title={
-          currentStatus === "paid"
-            ? "Date d'encaissement"
-            : "Marquer la facture comme payée"
+          partiallyPaid ? "Solder la facture" : "Marquer la facture comme payée"
         }
         size="sm"
       >
         <div className="space-y-4">
           <p className="text-sm text-stone-600 dark:text-stone-400">
-            Indiquez le jour où le paiement a été reçu. C&apos;est cette date
-            qui rattache le CA au trimestre CPS, pas la date de facture.
+            Indiquez le jour où le paiement
+            {remainingLabel ? ` de ${remainingLabel}` : ""} a été reçu.
+            C&apos;est cette date qui rattache le CA au trimestre CPS, pas la
+            date de facture. Pour un paiement partiel, utilisez « Ajouter un
+            paiement ».
           </p>
           <Input
             id="paid-at"

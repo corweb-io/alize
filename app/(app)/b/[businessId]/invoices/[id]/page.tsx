@@ -6,6 +6,7 @@ import Button from "@/components/ui/button";
 import InvoiceForm from "@/components/invoices/invoice-form";
 import InvoicePreview from "@/components/invoices/invoice-preview";
 import StatusToggle from "@/components/invoices/status-toggle";
+import InvoicePayments from "@/components/invoices/invoice-payments";
 import DuplicateButton from "@/components/invoices/duplicate-button";
 import DeleteButton from "@/components/invoices/delete-button";
 import PageHeader from "@/components/layout/page-header";
@@ -13,6 +14,8 @@ import Panel from "@/components/ui/panel";
 import { formatDate, formatCurrency } from "@/lib/utils/format";
 import { isOverdue } from "@/lib/utils/invoice-status";
 import { getInvoiceStatusLabel } from "@/lib/utils/labels";
+import { invoiceTotalTTC, summarizePayments } from "@/lib/invoices/payments";
+import type { InvoicePayment } from "@/lib/types/database";
 
 export default async function InvoiceDetailPage({
   params,
@@ -50,6 +53,13 @@ export default async function InvoiceDetailPage({
     .eq("invoice_id", id)
     .order("order_index");
 
+  const { data: paymentRows } = await supabase
+    .from("invoice_payments")
+    .select("*")
+    .eq("invoice_id", id)
+    .order("paid_on");
+  const payments = (paymentRows ?? []) as InvoicePayment[];
+
   const { data: clients } = await supabase
     .from("clients")
     .select("id, name, reference")
@@ -59,7 +69,9 @@ export default async function InvoiceDetailPage({
   const totalHT =
     items?.reduce((sum, item) => sum + parseFloat(item.total_ht || "0"), 0) ||
     0;
-  const totalTTC = invoice.vat_applicable ? totalHT * 1.2 : totalHT;
+  const totalTTC = invoiceTotalTTC(items ?? [], Boolean(invoice.vat_applicable));
+  const { paidTotal, remaining } = summarizePayments(payments, totalTTC);
+  const partiallyPaid = invoice.status !== "paid" && paidTotal > 0;
 
   // Check if invoice is overdue and update status if needed
   const overdue = isOverdue(invoice.due_date, invoice.status);
@@ -131,6 +143,11 @@ export default async function InvoiceDetailPage({
                   >
                     {getInvoiceStatusLabel(displayStatus)}
                   </span>
+                  {partiallyPaid && (
+                    <span className="inline-flex rounded-full bg-amber-100 px-2 text-xs font-semibold text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+                      Partiellement payée
+                    </span>
+                  )}
                 </div>
               </div>
               {displayStatus === "paid" && invoice.paid_at && (
@@ -146,7 +163,8 @@ export default async function InvoiceDetailPage({
               <StatusToggle
                 invoiceId={id}
                 currentStatus={displayStatus}
-                paidAt={invoice.paid_at}
+                partiallyPaid={partiallyPaid}
+                remainingLabel={formatCurrency(remaining, invoice.currency)}
               />
               <div className="flex justify-between">
                 <span className="text-stone-500 dark:text-stone-400">
@@ -164,6 +182,16 @@ export default async function InvoiceDetailPage({
                   {formatCurrency(totalTTC, invoice.currency)}
                 </span>
               </div>
+            </div>
+            <div className="mt-6 border-t border-stone-200 pt-4 dark:border-stone-700">
+              <InvoicePayments
+                invoiceId={id}
+                payments={payments}
+                totalTTC={totalTTC}
+                paidTotal={paidTotal}
+                remaining={remaining}
+                currency={invoice.currency}
+              />
             </div>
           </Panel>
 

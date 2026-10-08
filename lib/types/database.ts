@@ -176,6 +176,19 @@ export interface InvoiceItem {
   created_at: string;
 }
 
+export interface InvoicePayment {
+  id: string;
+  invoice_id: string;
+  business_id: string;
+  amount: number;
+  paid_on: string;
+  payment_method?: string | null;
+  note?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface InvoiceTemplate {
   id: string;
   user_id: string;
