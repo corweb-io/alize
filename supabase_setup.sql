@@ -1,6 +1,6 @@
 -- ============================================
 -- Supabase Database Setup Script
--- Invoice Generation Application
+-- Alizé
 -- ============================================
 -- Copy and paste this entire script into the Supabase Dashboard SQL Editor
 -- ============================================

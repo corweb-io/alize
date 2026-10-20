@@ -38,7 +38,7 @@ Invoicing and fiscal tracking for entrepreneurs in Saint-Barthélemy, built with
 
    ```bash
    git clone <repository-url>
-   cd next-invoice-gen
+   cd alize
    ```
 
 2. **Install dependencies**
