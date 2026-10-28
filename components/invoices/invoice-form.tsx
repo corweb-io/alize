@@ -10,6 +10,8 @@ import Input from "@/components/ui/input";
 import Select from "@/components/ui/select";
 import Button from "@/components/ui/button";
 import { formatCurrency, SUPPORTED_CURRENCIES } from "@/lib/utils/format";
+import { ITEM_UNIT_OPTIONS } from "@/lib/invoices/units";
+import type { ItemUnit } from "@/lib/types/database";
 
 interface InvoiceItem {
   id?: string;
@@ -17,6 +19,7 @@ interface InvoiceItem {
   additional_info?: string;
   unit_price_ht: number;
   quantity: number;
+  unit?: ItemUnit;
   total_ht: number;
   order_index: number;
 }
@@ -75,6 +78,7 @@ export default function InvoiceForm({
         description: "",
         unit_price_ht: 0,
         quantity: 1,
+        unit: "unit",
         total_ht: 0,
         order_index: 0,
       },
@@ -144,6 +148,7 @@ export default function InvoiceForm({
         description: "",
         unit_price_ht: 0,
         quantity: 1,
+        unit: "unit",
         total_ht: 0,
         order_index: items.length,
       },
@@ -287,6 +292,7 @@ export default function InvoiceForm({
               additional_info: item.additional_info || null,
               unit_price_ht: item.unit_price_ht,
               quantity: item.quantity,
+              unit: item.unit ?? "unit",
               total_ht: item.total_ht,
               order_index: index,
             })),
@@ -339,6 +345,7 @@ export default function InvoiceForm({
           additional_info: item.additional_info || null,
           unit_price_ht: item.unit_price_ht,
           quantity: item.quantity,
+          unit: item.unit ?? "unit",
           total_ht: item.total_ht,
           order_index: index,
         }));
@@ -519,7 +526,7 @@ export default function InvoiceForm({
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
-                  <div className="md:col-span-4">
+                  <div className="md:col-span-3">
                     <Input
                       label="Prix HT"
                       type="number"
@@ -535,9 +542,25 @@ export default function InvoiceForm({
                       }
                     />
                   </div>
-                  <div className="md:col-span-4">
+                  <div className="md:col-span-3">
+                    <Select
+                      label="Unité"
+                      value={item.unit ?? "unit"}
+                      onChange={(e) =>
+                        updateItem(index, "unit", e.target.value)
+                      }
+                      options={ITEM_UNIT_OPTIONS}
+                    />
+                  </div>
+                  <div className="md:col-span-3">
                     <Input
-                      label="Qté"
+                      label={
+                        item.unit === "hour"
+                          ? "Heures"
+                          : item.unit === "day"
+                            ? "Jours"
+                            : "Qté"
+                      }
                       type="number"
                       step="0.01"
                       required
@@ -551,7 +574,7 @@ export default function InvoiceForm({
                       }
                     />
                   </div>
-                  <div className="md:col-span-4 flex items-end">
+                  <div className="md:col-span-3 flex items-end">
                     <div className="w-full">
                       <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Total

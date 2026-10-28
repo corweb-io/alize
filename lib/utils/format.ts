@@ -61,15 +61,6 @@ export function formatNumber(
 }
 
 /**
- * Same as formatNumber but with regular spaces for PDF rendering (avoids "3/000" display bug).
- */
-export function formatNumberForPdf(
-  value: number | string | null | undefined
-): string {
-  return toPdfSafeSpaces(formatNumber(value));
-}
-
-/**
  * Format currency with appropriate locale based on currency code
  */
 export function formatCurrency(

@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  formatDate,
-  formatDocumentCurrency,
-  formatNumber,
-} from "@/lib/utils/format";
+import { formatDate, formatDocumentCurrency } from "@/lib/utils/format";
 import Card from "@/components/ui/card";
 import {
   INVOICE_PAYMENT_TERMS,
@@ -12,13 +8,18 @@ import {
   getDocumentSenderName,
   getVatExemptionMention,
 } from "@/lib/finance/legal-forms";
-import type { FiscalSettings } from "@/lib/types/database";
+import {
+  formatItemQuantity,
+  getUnitPriceSuffix,
+} from "@/lib/invoices/units";
+import type { FiscalSettings, ItemUnit } from "@/lib/types/database";
 
 interface InvoiceItem {
   description: string;
   additional_info?: string;
   unit_price_ht: number;
   quantity: number;
+  unit?: ItemUnit;
   total_ht: number;
 }
 
@@ -189,9 +190,10 @@ export default function InvoicePreview({
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">
                     {formatDocumentCurrency(item.unit_price_ht, currency)}
+                    {getUnitPriceSuffix(item.unit)}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">
-                    {formatNumber(item.quantity)}
+                    {formatItemQuantity(item.quantity, item.unit)}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">
                     {formatDocumentCurrency(item.total_ht, currency)}

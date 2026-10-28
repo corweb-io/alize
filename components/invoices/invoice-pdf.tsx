@@ -1,22 +1,23 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import {
-  formatDate,
-  formatCurrencyForPdf,
-  formatNumberForPdf,
-} from "@/lib/utils/format";
+import { formatDate, formatCurrencyForPdf } from "@/lib/utils/format";
 import {
   INVOICE_PAYMENT_TERMS,
   buildLegalMentions,
   getDocumentSenderName,
   getVatExemptionMention,
 } from "@/lib/finance/legal-forms";
-import type { FiscalSettings } from "@/lib/types/database";
+import {
+  formatItemQuantity,
+  getUnitPriceSuffix,
+} from "@/lib/invoices/units";
+import type { FiscalSettings, ItemUnit } from "@/lib/types/database";
 
 interface InvoiceItem {
   description: string;
   additional_info?: string;
   unit_price_ht: number;
   quantity: number;
+  unit?: ItemUnit;
   total_ht: number;
 }
 
@@ -400,11 +401,12 @@ export default function InvoicePDF({
               <View style={styles.colPrice}>
                 <Text style={styles.tableCellText}>
                   {formatCurrencyForPdf(item.unit_price_ht, currency)}
+                  {getUnitPriceSuffix(item.unit)}
                 </Text>
               </View>
               <View style={styles.colQuantity}>
                 <Text style={styles.tableCellText}>
-                  {formatNumberForPdf(item.quantity)}
+                  {formatItemQuantity(item.quantity, item.unit)}
                 </Text>
               </View>
               <View style={styles.colTotal}>

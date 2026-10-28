@@ -6,6 +6,9 @@ export type ActivityType =
 
 export type DeclarationFrequency = "monthly" | "quarterly";
 
+/** What an invoice line's quantity counts: plain units, hours or days. */
+export type ItemUnit = "unit" | "hour" | "day";
+
 export type LegalForm =
   | "ei_micro"
   | "ei_reel"
@@ -183,6 +186,7 @@ export interface InvoiceItem {
   additional_info?: string;
   unit_price_ht: number;
   quantity: number;
+  unit: ItemUnit;
   total_ht: number;
   order_index: number;
   created_at: string;

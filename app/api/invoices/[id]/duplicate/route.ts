@@ -73,6 +73,7 @@ export async function POST(
         additional_info: item.additional_info || null,
         unit_price_ht: item.unit_price_ht,
         quantity: item.quantity,
+        unit: item.unit,
         total_ht: item.total_ht,
         order_index: index,
       }))

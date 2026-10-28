@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { dbErrorResponse } from '@/lib/api-errors'
+import type { ItemUnit } from '@/lib/types/database'
 
 export const runtime = 'nodejs'
 
@@ -9,6 +10,7 @@ interface InvoiceItemInput {
   additional_info?: string | null
   unit_price_ht: number
   quantity: number
+  unit?: ItemUnit
   total_ht: number
   order_index?: number
 }
@@ -83,6 +85,7 @@ export async function POST(req: Request) {
     additional_info: it.additional_info?.trim() || null,
     unit_price_ht: it.unit_price_ht,
     quantity: it.quantity,
+    unit: it.unit ?? 'unit',
     total_ht: it.total_ht,
     order_index: it.order_index ?? index,
   }))
