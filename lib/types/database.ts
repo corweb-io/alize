@@ -170,6 +170,7 @@ export interface Invoice {
   source_quote_id?: string | null;
   vat_applicable: boolean;
   vat_article?: string;
+  service_period?: string | null;
   notes?: string;
   created_at: string;
   updated_at: string;

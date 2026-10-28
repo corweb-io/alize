@@ -23,6 +23,7 @@ interface CreateInvoiceBody {
   currency?: string
   vat_applicable?: boolean
   vat_article?: string | null
+  service_period?: string | null
   notes?: string | null
   items: InvoiceItemInput[]
 }
@@ -66,6 +67,7 @@ export async function POST(req: Request) {
       document_type: 'invoice',
       vat_applicable: body.vat_applicable ?? false,
       vat_article: body.vat_article?.trim() || null,
+      service_period: body.service_period?.trim() || null,
       notes: body.notes?.trim() || null,
     })
     .select('id, reference')

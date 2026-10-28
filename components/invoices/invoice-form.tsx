@@ -34,6 +34,7 @@ interface Invoice {
   status?: string;
   vat_applicable: boolean;
   vat_article?: string;
+  service_period?: string | null;
   notes?: string;
   items?: InvoiceItem[];
 }
@@ -95,6 +96,7 @@ export default function InvoiceForm({
     currency: invoice?.currency || defaultCurrency,
     vat_applicable: invoice?.vat_applicable || false,
     vat_article: invoice ? invoice.vat_article || "" : defaultVatArticle,
+    service_period: invoice?.service_period || "",
     notes: invoice?.notes || "",
   });
 
@@ -233,6 +235,9 @@ export default function InvoiceForm({
             currency: formData.currency,
             vat_applicable: formData.vat_applicable,
             vat_article: formData.vat_article || null,
+            ...(!isQuote && {
+              service_period: formData.service_period?.trim() || null,
+            }),
             notes: formData.notes || null,
             version: newVersion,
             updated_at: new Date().toISOString(),
@@ -273,6 +278,9 @@ export default function InvoiceForm({
             currency: formData.currency,
             vat_applicable: formData.vat_applicable,
             vat_article: formData.vat_article || null,
+            ...(!isQuote && {
+              service_period: formData.service_period?.trim() || null,
+            }),
             notes: formData.notes || null,
             items: items.map((item, index) => ({
               description: item.description,
@@ -435,6 +443,17 @@ export default function InvoiceForm({
             setFormData({ ...formData, due_date: e.target.value })
           }
         />
+
+        {!isQuote && (
+          <Input
+            label="Date ou période de la prestation"
+            placeholder="ex. octobre 2026, ou du 01/10 au 15/10/2026"
+            value={formData.service_period || ""}
+            onChange={(e) =>
+              setFormData({ ...formData, service_period: e.target.value })
+            }
+          />
+        )}
 
         <Select
           label="Mode de paiement"

@@ -30,6 +30,7 @@ interface Invoice {
   currency?: string;
   vat_applicable: boolean;
   vat_article?: string;
+  service_period?: string | null;
   notes?: string;
   client_reference?: string;
   document_type?: "invoice" | "quote" | "credit_note";
@@ -125,6 +126,9 @@ export default function InvoicePreview({
                 {isCreditNote ? "Date de l'avoir" : "Date de facturation"}:{" "}
                 {formatDate(invoice.invoice_date)}
               </p>
+              {isInvoice && invoice.service_period && (
+                <p>Période de prestation: {invoice.service_period}</p>
+              )}
               {invoice.client_reference && (
                 <p>Référence client: {invoice.client_reference}</p>
               )}
