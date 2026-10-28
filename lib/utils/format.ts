@@ -110,13 +110,35 @@ export function formatCurrency(
 }
 
 /**
- * Same as formatCurrency but with regular spaces for PDF rendering (avoids "3/000" display bug).
+ * Format an amount for an invoice, quote or credit note. Documents are in
+ * French, and "$" is ambiguous (USD, CAD, AUD…), so every currency other
+ * than the euro is written with its ISO code: "1 234,56 CAD".
+ */
+export function formatDocumentCurrency(
+  value: number | string | null | undefined,
+  currency: string = "EUR"
+): string {
+  const currencyCode = currency || "EUR";
+  const num = typeof value === "string" ? parseFloat(value) : (value ?? 0);
+  const fractionDigits = currencyCode === "JPY" ? 0 : 2;
+
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: currencyCode,
+    currencyDisplay: currencyCode === "EUR" ? "symbol" : "code",
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(isNaN(num) ? 0 : num);
+}
+
+/**
+ * Same as formatDocumentCurrency but with regular spaces for PDF rendering (avoids "3/000" display bug).
  */
 export function formatCurrencyForPdf(
   value: number | string | null | undefined,
   currency: string = "EUR"
 ): string {
-  return toPdfSafeSpaces(formatCurrency(value, currency));
+  return toPdfSafeSpaces(formatDocumentCurrency(value, currency));
 }
 
 /**

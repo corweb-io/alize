@@ -1,10 +1,16 @@
 "use client";
 
-import { formatDate, formatCurrency, formatNumber } from "@/lib/utils/format";
+import {
+  formatDate,
+  formatDocumentCurrency,
+  formatNumber,
+} from "@/lib/utils/format";
 import Card from "@/components/ui/card";
 import {
+  INVOICE_PAYMENT_TERMS,
   buildLegalMentions,
   getDocumentSenderName,
+  getVatExemptionMention,
 } from "@/lib/finance/legal-forms";
 import type { FiscalSettings } from "@/lib/types/database";
 
@@ -18,7 +24,6 @@ interface InvoiceItem {
 
 interface Invoice {
   reference: string;
-  version: string;
   invoice_date: string;
   due_date: string;
   payment_method: string;
@@ -78,6 +83,7 @@ export default function InvoicePreview({
   const currency = invoice.currency || "EUR";
   const isQuote = invoice.document_type === "quote";
   const isCreditNote = invoice.document_type === "credit_note";
+  const isInvoice = !isQuote && !isCreditNote;
   const documentTitle = isQuote ? "DEVIS" : isCreditNote ? "AVOIR" : "FACTURE";
 
   return (
@@ -115,7 +121,6 @@ export default function InvoicePreview({
             </div>
             <div className="mt-4 space-y-1 text-sm text-gray-600 dark:text-gray-400">
               <p>Référence: {invoice.reference}</p>
-              <p>Version: {invoice.version}</p>
               <p>
                 {isCreditNote ? "Date de l'avoir" : "Date de facturation"}:{" "}
                 {formatDate(invoice.invoice_date)}
@@ -179,13 +184,13 @@ export default function InvoicePreview({
                     )}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">
-                    {formatCurrency(item.unit_price_ht, currency)}
+                    {formatDocumentCurrency(item.unit_price_ht, currency)}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">
                     {formatNumber(item.quantity)}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-white">
-                    {formatCurrency(item.total_ht, currency)}
+                    {formatDocumentCurrency(item.total_ht, currency)}
                   </td>
                 </tr>
               ))}
@@ -201,7 +206,7 @@ export default function InvoicePreview({
                 Total HT:
               </span>
               <span className="font-semibold text-gray-900 dark:text-white">
-                {formatCurrency(totalHT, currency)}
+                {formatDocumentCurrency(totalHT, currency)}
               </span>
             </div>
             {invoice.vat_applicable && (
@@ -210,7 +215,7 @@ export default function InvoicePreview({
                   TVA (20%):
                 </span>
                 <span className="font-semibold text-gray-900 dark:text-white">
-                  {formatCurrency(totalTTC - totalHT, currency)}
+                  {formatDocumentCurrency(totalTTC - totalHT, currency)}
                 </span>
               </div>
             )}
@@ -219,7 +224,7 @@ export default function InvoicePreview({
                 Total Net TTC:
               </span>
               <span className="text-gray-900 dark:text-white">
-                {formatCurrency(totalTTC, currency)}
+                {formatDocumentCurrency(totalTTC, currency)}
               </span>
             </div>
             {!isCreditNote && (
@@ -228,7 +233,7 @@ export default function InvoicePreview({
                   Net à payer:
                 </span>
                 <span className="text-gray-900 dark:text-white">
-                  {formatCurrency(totalTTC, currency)}
+                  {formatDocumentCurrency(totalTTC, currency)}
                 </span>
               </div>
             )}
@@ -236,9 +241,9 @@ export default function InvoicePreview({
         </div>
 
         {/* VAT Info */}
-        {!invoice.vat_applicable && invoice.vat_article && (
+        {!invoice.vat_applicable && (
           <div className="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            TVA non applicable, {invoice.vat_article}
+            {getVatExemptionMention(invoice.vat_article)}
           </div>
         )}
 
@@ -290,9 +295,11 @@ export default function InvoicePreview({
         )}
 
         {(legalMentions.length > 0 ||
+          isInvoice ||
           sender?.legal_info?.late_payment_notice) && (
           <div className="mt-6 space-y-1 border-t border-gray-200 pt-4 text-center text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
             {legalMentions.length > 0 && <p>{legalMentions.join(" - ")}</p>}
+            {isInvoice && <p>{INVOICE_PAYMENT_TERMS.join(" - ")}</p>}
             {sender?.legal_info?.late_payment_notice && (
               <p>{sender.legal_info.late_payment_notice}</p>
             )}

@@ -48,6 +48,8 @@ interface InvoiceFormProps {
   invoice?: Invoice;
   clients?: Client[];
   defaultCurrency?: string;
+  /** Exemption mention used on the business's previous documents. */
+  defaultVatArticle?: string;
   documentType?: "invoice" | "quote";
 }
 
@@ -55,6 +57,7 @@ export default function InvoiceForm({
   invoice,
   clients = [],
   defaultCurrency = "EUR",
+  defaultVatArticle = "",
   documentType = "invoice",
 }: InvoiceFormProps) {
   const businessId = useBusinessId();
@@ -91,7 +94,7 @@ export default function InvoiceForm({
     payment_method: invoice?.payment_method || "Virement",
     currency: invoice?.currency || defaultCurrency,
     vat_applicable: invoice?.vat_applicable || false,
-    vat_article: invoice?.vat_article || "",
+    vat_article: invoice ? invoice.vat_article || "" : defaultVatArticle,
     notes: invoice?.notes || "",
   });
 
@@ -577,14 +580,14 @@ export default function InvoiceForm({
               TVA applicable
             </label>
           </div>
-          {formData.vat_applicable && (
+          {!formData.vat_applicable && (
             <Input
-              label="Article TVA"
+              label="Mention d'exonération de TVA"
               value={formData.vat_article || ""}
               onChange={(e) =>
                 setFormData({ ...formData, vat_article: e.target.value })
               }
-              placeholder="ex. 293 B du Code général des impôts"
+              placeholder="ex. art. 293 B du CGI, ou Saint-Barthélemy (hors champ d'application de la TVA)"
             />
           )}
         </div>

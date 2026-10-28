@@ -20,13 +20,21 @@ export default async function NewInvoicePage({
     redirect("/login");
   }
 
-  const [clientsResult, business] = await Promise.all([
+  const [clientsResult, business, lastVatArticle] = await Promise.all([
     supabase
       .from("clients")
       .select("id, name, reference")
       .eq("business_id", businessId)
       .order("name"),
     getBusiness(businessId),
+    supabase
+      .from("invoices")
+      .select("vat_article")
+      .eq("business_id", businessId)
+      .not("vat_article", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const clients = clientsResult.data;
@@ -42,6 +50,7 @@ export default async function NewInvoicePage({
         <InvoiceForm
           clients={clients || []}
           defaultCurrency={business.default_currency}
+          defaultVatArticle={lastVatArticle.data?.vat_article ?? undefined}
         />
       </Panel>
     </div>

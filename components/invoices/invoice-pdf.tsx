@@ -5,8 +5,10 @@ import {
   formatNumberForPdf,
 } from "@/lib/utils/format";
 import {
+  INVOICE_PAYMENT_TERMS,
   buildLegalMentions,
   getDocumentSenderName,
+  getVatExemptionMention,
 } from "@/lib/finance/legal-forms";
 import type { FiscalSettings } from "@/lib/types/database";
 
@@ -20,7 +22,6 @@ interface InvoiceItem {
 
 interface Invoice {
   reference: string;
-  version: string;
   invoice_date: string;
   due_date: string;
   payment_method: string;
@@ -294,6 +295,7 @@ export default function InvoicePDF({
   const currency = invoice.currency || "EUR";
   const isQuote = invoice.document_type === "quote";
   const isCreditNote = invoice.document_type === "credit_note";
+  const isInvoice = !isQuote && !isCreditNote;
   const documentTitle = isQuote ? "DEVIS" : isCreditNote ? "AVOIR" : "FACTURE";
 
   return (
@@ -336,7 +338,6 @@ export default function InvoicePDF({
               </View>
               <View style={styles.invoiceInfo}>
                 <Text>Référence: {invoice.reference}</Text>
-                <Text>Version: {invoice.version}</Text>
                 <Text>
                   {isCreditNote ? "Date de l'avoir" : "Date de facturation"}:{" "}
                   {formatDate(invoice.invoice_date)}
@@ -444,9 +445,9 @@ export default function InvoicePDF({
         </View>
 
         {/* VAT Info */}
-        {!invoice.vat_applicable && invoice.vat_article && (
+        {!invoice.vat_applicable && (
           <Text style={styles.vatInfo}>
-            TVA non applicable, {invoice.vat_article}
+            {getVatExemptionMention(invoice.vat_article)}
           </Text>
         )}
 
@@ -505,10 +506,16 @@ export default function InvoicePDF({
 
         {/* Legal Disclaimer - Positioned at bottom */}
         {(legalMentions.length > 0 ||
+          isInvoice ||
           sender?.legal_info?.late_payment_notice) && (
           <View style={styles.legalDisclaimer}>
             {legalMentions.length > 0 && (
               <Text>{legalMentions.join(" - ")}</Text>
+            )}
+            {isInvoice && (
+              <Text style={styles.legalDisclaimerText}>
+                {INVOICE_PAYMENT_TERMS.join(" - ")}
+              </Text>
             )}
             {sender?.legal_info?.late_payment_notice && (
               <Text style={styles.legalDisclaimerText}>

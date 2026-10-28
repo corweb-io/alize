@@ -192,10 +192,27 @@ export function buildLegalMentions(sender?: SenderProfile | null): string[] {
   mentions.push(
     legal?.siret && `SIRET: ${legal.siret}`,
     legal?.siren && `SIREN: ${legal.siren}`,
-    legal?.rcs && `RCS: ${legal.rcs}`,
+    legal?.rcs && `RCS ${legal.rcs}${legal.siren ? ` ${legal.siren}` : ""}`,
     legal?.ape_naf && `APE/NAF: ${legal.ape_naf}`,
     legal?.tva_number && `Num TVA: ${legal.tva_number}`
   );
 
   return mentions.filter((m): m is string => Boolean(m));
+}
+
+/**
+ * Payment terms every invoice to a professional client must state
+ * (art. L441-9 and L441-10 du Code de commerce), even when no discount is
+ * offered.
+ */
+export const INVOICE_PAYMENT_TERMS = [
+  "Pénalités de retard : 3 fois le taux d'intérêt légal",
+  "Indemnité forfaitaire pour frais de recouvrement : 40 €",
+  "Pas d'escompte pour paiement anticipé",
+];
+
+/** VAT line printed under the totals when VAT is not charged. */
+export function getVatExemptionMention(vatArticle?: string | null): string {
+  const article = vatArticle?.trim();
+  return article ? `TVA non applicable, ${article}` : "TVA non applicable";
 }

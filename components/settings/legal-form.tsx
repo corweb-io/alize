@@ -107,8 +107,8 @@ export default function LegalForm({ business }: LegalFormProps) {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
-              label="RCS (ville)"
-              placeholder="ex. Paris, Basse-Terre"
+              label="RCS (ville du greffe)"
+              placeholder="Vide si non immatriculé au RCS"
               value={legalInfo.rcs}
               onChange={(e) =>
                 setLegalInfo({ ...legalInfo, rcs: e.target.value })
@@ -125,14 +125,22 @@ export default function LegalForm({ business }: LegalFormProps) {
             />
           </div>
 
-          <Input
-            label="N° TVA intracommunautaire"
-            placeholder="ex. FR 70 978 934 560"
-            value={legalInfo.tva_number}
-            onChange={(e) =>
-              setLegalInfo({ ...legalInfo, tva_number: e.target.value })
-            }
-          />
+          <div>
+            <Input
+              label="N° TVA intracommunautaire"
+              placeholder="ex. FR 70 978 934 560"
+              value={legalInfo.tva_number}
+              onChange={(e) =>
+                setLegalInfo({ ...legalInfo, tva_number: e.target.value })
+              }
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Uniquement si l&apos;administration fiscale vous en a attribué
+              un (vérifiable sur VIES). Saint-Barthélemy étant hors du champ
+              de la TVA, une entreprise qui y est établie n&apos;en a
+              normalement pas.
+            </p>
+          </div>
 
           <Input
             label="Type de prestation"
@@ -148,13 +156,18 @@ export default function LegalForm({ business }: LegalFormProps) {
               htmlFor="late-payment-notice"
               className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
-              Pénalités de retard de paiement
+              Mentions complémentaires
             </label>
+            <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+              Les pénalités de retard (3 fois le taux d&apos;intérêt légal),
+              l&apos;indemnité de recouvrement de 40 € et l&apos;absence
+              d&apos;escompte sont ajoutées automatiquement sur les factures.
+            </p>
             <textarea
               id="late-payment-notice"
               className="w-full rounded-md border border-stone-300 px-3 py-2 shadow-sm focus:border-teal-600 focus:ring-teal-600 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100"
               rows={3}
-              placeholder="ex. En cas de retard de paiement, une indemnité forfaitaire pour frais de recouvrement de 40 euros sera exigée…"
+              placeholder="Facultatif"
               value={legalInfo.late_payment_notice}
               onChange={(e) =>
                 setLegalInfo({
